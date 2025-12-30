@@ -1,0 +1,9 @@
+{
+  "name": "label-generator",
+  "version": "1.0.0",
+  "main": "api/label.js",
+  "dependencies": {
+    "canvas": "^2.11.2",
+    "qrcode": "^1.5.3"
+  }
+}
