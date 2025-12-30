@@ -1,0 +1,149 @@
+import QRCode from 'qrcode';
+import { PNG } from 'pngjs';
+
+console.log('=== НОВАЯ ФУНКЦИЯ label-new ЗАПУЩЕНА ===');
+
+// Минимальный рабочий код - только текст "ТЕСТ"
+export default async function handler(req, res) {
+  try {
+    const text = req.query.text || 'ТЕСТ';
+    const qr = req.query.qr || 'https://ya.ru';
+    
+    console.log('Параметры:', { text, qr: qr.substring(0, 20) + '...' });
+    
+    // Размеры
+    const WIDTH = 384;
+    const HEIGHT = 260;
+    
+    // Создаём PNG
+    const png = new PNG({ width: WIDTH, height: HEIGHT });
+    
+    // 1. Белый фон
+    for (let i = 0; i < png.data.length; i += 4) {
+      png.data[i] = 255;     // R
+      png.data[i+1] = 255;   // G
+      png.data[i+2] = 255;   // B
+      png.data[i+3] = 255;   // A
+    }
+    
+    // 2. КРАСНАЯ РАМКА (100% видно если код работает)
+    for (let x = 0; x < WIDTH; x++) {
+      // Верхняя граница (толстая - 3 пикселя)
+      for (let i = 0; i < 3; i++) {
+        let idx = ((0+i) * WIDTH + x) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 0; png.data[idx+2] = 0;
+        
+        // Нижняя граница
+        idx = ((HEIGHT-1-i) * WIDTH + x) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 0; png.data[idx+2] = 0;
+      }
+    }
+    
+    for (let y = 0; y < HEIGHT; y++) {
+      // Левая граница
+      for (let i = 0; i < 3; i++) {
+        let idx = (y * WIDTH + (0+i)) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 0; png.data[idx+2] = 0;
+        
+        // Правая граница
+        idx = (y * WIDTH + (WIDTH-1-i)) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 0; png.data[idx+2] = 0;
+      }
+    }
+    
+    // 3. БОЛЬШАЯ ЧЁРНАЯ БУКВА "Т" (невозможно не увидеть!)
+    // Горизонтальная палочка "Т"
+    for (let i = 0; i < 20; i++) {
+      for (let j = 0; j < 5; j++) {
+        const x = 50 + j;
+        const y = 50 + i;
+        if (x < HEIGHT && y < WIDTH) {
+          const idx = (x * WIDTH + y) * 4;
+          png.data[idx] = 0;
+          png.data[idx+1] = 0;
+          png.data[idx+2] = 0;
+        }
+      }
+    }
+    
+    // Вертикальная палочка "Т"
+    for (let i = 0; i < 30; i++) {
+      for (let j = 0; j < 5; j++) {
+        const x = 50 + i;
+        const y = 60; // Центр горизонтальной палочки
+        if (x < HEIGHT && y+j < WIDTH) {
+          const idx = (x * WIDTH + (y+j)) * 4;
+          png.data[idx] = 0;
+          png.data[idx+1] = 0;
+          png.data[idx+2] = 0;
+        }
+      }
+    }
+    
+    // 4. Надпись "РАБОТАЕТ!" зелёным
+    const successText = 'V3';
+    for (let c = 0; c < successText.length; c++) {
+      for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+          const x = HEIGHT - 30 + i;
+          const y = 20 + c * 12 + j;
+          if (x < HEIGHT && y < WIDTH) {
+            const idx = (x * WIDTH + y) * 4;
+            png.data[idx] = 0;
+            png.data[idx+1] = 200;
+            png.data[idx+2] = 0;
+          }
+        }
+      }
+    }
+    
+    // 5. QR-код (упрощённый - чёрный квадрат для теста)
+    const qrSize = 100;
+    const qrX = 80;
+    const qrY = WIDTH - qrSize - 50;
+    
+    // Просто чёрный квадрат вместо QR
+    for (let i = 0; i < qrSize; i++) {
+      for (let j = 0; j < qrSize; j++) {
+        const x = qrX + i;
+        const y = qrY + j;
+        if (x < HEIGHT && y < WIDTH && i > 5 && i < qrSize-5 && j > 5 && j < qrSize-5) {
+          const idx = (x * WIDTH + y) * 4;
+          png.data[idx] = 0;
+          png.data[idx+1] = 0;
+          png.data[idx+2] = 0;
+        }
+      }
+    }
+    
+    // Белая рамка вокруг "QR"
+    for (let i = 0; i < qrSize; i++) {
+      for (let k = 0; k < 3; k++) {
+        let idx = ((qrX + i) * WIDTH + (qrY + k)) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 255; png.data[idx+2] = 255;
+        
+        idx = ((qrX + i) * WIDTH + (qrY + qrSize - 1 - k)) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 255; png.data[idx+2] = 255;
+        
+        idx = ((qrX + k) * WIDTH + (qrY + i)) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 255; png.data[idx+2] = 255;
+        
+        idx = ((qrX + qrSize - 1 - k) * WIDTH + (qrY + i)) * 4;
+        png.data[idx] = 255; png.data[idx+1] = 255; png.data[idx+2] = 255;
+      }
+    }
+    
+    // Отправляем
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    console.log('Изображение отправлено');
+    res.end(PNG.sync.write(png));
+    
+  } catch (error) {
+    console.error('Ошибка:', error);
+    res.status(500).json({ error: error.message, version: 'label-new-v1' });
+  }
+}
