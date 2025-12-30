@@ -34,7 +34,7 @@ const FONT_5X7 = [
   // .
   [0, 0, 0, 0, 3],
   // /
-  [16, 8, 4, 2, 1],
+  [16, 8, 8, 8, 1],
   // 0
   [14, 17, 17, 17, 14],
   // 1
@@ -76,7 +76,7 @@ const FONT_5X7 = [
   // C
   [14, 17, 17, 17, 17],
   // D
-  [30, 17, 17, 17, 30],
+  [30, 17, 30, 17, 30],
   // E
   [31, 16, 31, 16, 31],
   // F
@@ -234,7 +234,6 @@ function createPng(buffer, width, height) {
   return png;
 }
 
-// Основной обработчик
 export default async function handler(req, res) {
   const { text = 'NO TEXT', qr = 'https://example.com' } = req.query;
 
@@ -267,7 +266,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // Отправка PNG
   const png = createPng(buffer, width, height);
   const pngBuffer = PNG.sync.write(png);
 
