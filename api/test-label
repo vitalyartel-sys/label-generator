@@ -1,0 +1,209 @@
+// Файл: api/test-label.js
+import QRCode from 'qrcode';
+import { PNG } from 'pngjs';
+
+// Простой шрифт 5x7 для отладки
+const SIMPLE_FONT = {
+  'Т': [0x1F, 0x04, 0x04, 0x04, 0x04],
+  'Е': [0x1F, 0x15, 0x15, 0x15, 0x15],
+  'С': [0x0E, 0x11, 0x11, 0x11, 0x0A],
+  'П': [0x1F, 0x11, 0x11, 0x11, 0x11],
+  'Р': [0x1F, 0x05, 0x05, 0x05, 0x02],
+  'И': [0x11, 0x13, 0x15, 0x19, 0x11],
+  'В': [0x1F, 0x15, 0x15, 0x15, 0x0A],
+  'Д': [0x08, 0x14, 0x14, 0x14, 0x1F],
+  '0': [0x0E,0x11,0x11,0x11,0x0E],
+  '1': [0x04,0x0C,0x04,0x04,0x0E],
+  '2': [0x0E,0x01,0x0E,0x10,0x0F],
+  '3': [0x0E,0x01,0x06,0x01,0x0E],
+  '4': [0x11,0x11,0x0F,0x01,0x01],
+  '5': [0x0F,0x10,0x0E,0x01,0x0E],
+  '6': [0x06,0x08,0x0E,0x11,0x0E],
+  '7': [0x0F,0x01,0x02,0x04,0x08],
+  '8': [0x0E,0x11,0x0E,0x11,0x0E],
+  '9': [0x0E,0x11,0x0F,0x01,0x06],
+  'A': [0x04,0x0A,0x11,0x1F,0x11],
+  'B': [0x1E,0x11,0x1E,0x11,0x1E],
+  'C': [0x0E,0x11,0x10,0x11,0x0E],
+  'D': [0x1E,0x11,0x11,0x11,0x1E],
+  'E': [0x1F,0x10,0x1E,0x10,0x1F],
+  'F': [0x1F,0x10,0x1E,0x10,0x10]
+};
+
+// Функция рисования пикселя
+function setPixel(buffer, width, x, y, r, g, b) {
+  if (x < 0 || x >= 260 || y < 0 || y >= 384) return;
+  const idx = (x * width + y) * 4;
+  buffer[idx] = r;
+  buffer[idx + 1] = g;
+  buffer[idx + 2] = b;
+  buffer[idx + 3] = 255; // Alpha
+}
+
+// Рисует символ 5x7, повёрнутый на 90° (вертикально)
+function drawChar(buffer, width, char, startX, startY) {
+  const glyph = SIMPLE_FONT[char] || SIMPLE_FONT['?'] || [0x00,0x00,0x00,0x00,0x00];
+  
+  // Для каждого столбца (5 столбцов шириной)
+  for (let col = 0; col < 5; col++) {
+    const colData = glyph[col];
+    
+    // Для каждого из 7 битов в столбце (7 пикселей высотой)
+    for (let row = 0; row < 7; row++) {
+      if (colData & (1 << row)) {
+        // Координаты с поворотом на 90°
+        // startX - отступ сверху, startY - отступ слева
+        const x = startX + row;        // После поворота: row становится X
+        const y = startY + (4 - col);  // После поворота: col становится Y (инвертируем)
+        
+        setPixel(buffer, width, x, y, 0, 0, 0);
+      }
+    }
+  }
+}
+
+// Рисует текст вертикально слева
+function drawVerticalText(buffer, width, text, startX, startY) {
+  const chars = String(text).toUpperCase().split('');
+  let currentY = startY;
+  
+  for (const char of chars) {
+    drawChar(buffer, width, char, startX, currentY);
+    currentY += 6; // 5 пикселей буква + 1 пробел
+  }
+}
+
+export default async function handler(req, res) {
+  try {
+    // Получаем и декодируем параметры
+    let text = req.query.text || 'ТЕСТ';
+    let qr = req.query.qr || 'https://ya.ru';
+    
+    // Декодируем URL-кодированные символы
+    text = decodeURIComponent(text);
+    qr = decodeURIComponent(qr);
+    
+    console.log('DEBUG: Параметры:', { text, qr });
+    console.log('DEBUG: Первые символы:', text.substring(0, 5));
+    
+    // Размер этикетки
+    const width = 384;   // Ширина (пиксели)
+    const height = 260;  // Высота (пиксели)
+    
+    // Создаём белое изображение
+    const buffer = new Uint8Array(width * height * 4);
+    for (let i = 0; i < buffer.length; i += 4) {
+      buffer[i] = 255;     // R
+      buffer[i + 1] = 255; // G
+      buffer[i + 2] = 255; // B
+      buffer[i + 3] = 255; // A
+    }
+    
+    // 1. Рисуем рамку (синяя для отладки)
+    for (let x = 0; x < width; x++) {
+      setPixel(buffer, width, 0, x, 0, 0, 255);
+      setPixel(buffer, width, height-1, x, 0, 0, 255);
+    }
+    for (let y = 0; y < height; y++) {
+      setPixel(buffer, width, y, 0, 0, 0, 255);
+      setPixel(buffer, width, y, width-1, 0, 0, 255);
+    }
+    
+    // 2. Рисуем текст вертикально СЛЕВА
+    // startX = 50 (отступ сверху), startY = 50 (отступ слева)
+    console.log('DEBUG: Рисуем текст:', text);
+    drawVerticalText(buffer, width, text, 50, 50);
+    
+    // 3. Рисуем красную линию разделения
+    for (let y = 0; y < height; y++) {
+      setPixel(buffer, width, y, 150, 255, 0, 0);
+    }
+    
+    // 4. Генерируем QR-код СПРАВА
+    const qrSize = 180;
+    console.log('DEBUG: Генерируем QR для:', qr);
+    
+    const qrDataUrl = await QRCode.toDataURL(qr, {
+      width: qrSize,
+      margin: 1,
+      color: { dark: '#000000', light: '#FFFFFF' }
+    });
+    
+    // Конвертируем QR
+    const qrBase64 = qrDataUrl.split(',')[1];
+    const qrBuffer = Buffer.from(qrBase64, 'base64');
+    const qrImage = PNG.sync.read(qrBuffer);
+    
+    // Позиция QR-кода (справа, по центру вертикали)
+    const qrX = Math.floor((height - qrSize) / 2);
+    const qrY = width - qrSize - 50;
+    
+    console.log('DEBUG: Позиция QR:', { qrX, qrY, qrSize });
+    
+    // Вставляем QR-код
+    for (let y = 0; y < qrImage.height; y++) {
+      for (let x = 0; x < qrImage.width; x++) {
+        const qrIdx = (y * qrImage.width + x) * 4;
+        const dstX = qrX + x;
+        const dstY = qrY + y;
+        
+        if (dstX >= 0 && dstX < height && dstY >= 0 && dstY < width) {
+          const dstIdx = (dstX * width + dstY) * 4;
+          
+          // Копируем чёрные пиксели
+          if (qrImage.data[qrIdx] < 128) {
+            buffer[dstIdx] = 0;
+            buffer[dstIdx + 1] = 0;
+            buffer[dstIdx + 2] = 0;
+            buffer[dstIdx + 3] = 255;
+          }
+        }
+      }
+    }
+    
+    // 5. Создаём PNG
+    const png = new PNG({ width, height });
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const srcIdx = (y * width + x) * 4;
+        const dstIdx = (y * width + x) * 4;
+        
+        png.data[dstIdx] = buffer[srcIdx];
+        png.data[dstIdx + 1] = buffer[srcIdx + 1];
+        png.data[dstIdx + 2] = buffer[srcIdx + 2];
+        png.data[dstIdx + 3] = buffer[srcIdx + 3];
+      }
+    }
+    
+    const pngBuffer = PNG.sync.write(png);
+    
+    // 6. Отправляем с заголовками
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    console.log('DEBUG: Изображение сгенерировано успешно');
+    res.end(pngBuffer);
+    
+  } catch (error) {
+    console.error('ERROR:', error);
+    
+    // Изображение с ошибкой
+    const errorPng = new PNG({ width: 384, height: 260 });
+    
+    // Красный фон
+    for (let i = 0; i < errorPng.data.length; i += 4) {
+      errorPng.data[i] = 255;
+      errorPng.data[i+1] = 200;
+      errorPng.data[i+2] = 200;
+      errorPng.data[i+3] = 255;
+    }
+    
+    // Текст ошибки
+    const errorText = error.message.substring(0, 30);
+    
+    res.setHeader('Content-Type', 'image/png');
+    res.end(PNG.sync.write(errorPng));
+  }
+}
