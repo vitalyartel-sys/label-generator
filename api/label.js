@@ -234,6 +234,7 @@ function createPng(buffer, width, height) {
   return png;
 }
 
+// Основной обработчик
 export default async function handler(req, res) {
   const { text = 'NO TEXT', qr = 'https://example.com' } = req.query;
 
@@ -245,11 +246,11 @@ export default async function handler(req, res) {
   // Рисуем повёрнутый текст (слева, ~20px от края)
   drawRotatedText(buffer, width, text, 20, 220);
 
-  // Генерируем QR как битовую матрицу
+  // Генерируем QR как Data URL
   const qrDataUrl = await QRCode.toDataURL(qr, { width: 180 });
   const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
   const qrImage = PNG.sync.read(qrBuffer);
-  
+
   // Вставляем QR справа (160, 40)
   for (let y = 0; y < qrImage.height; y++) {
     for (let x = 0; x < qrImage.width; x++) {
@@ -266,6 +267,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // Отправка PNG
   const png = createPng(buffer, width, height);
   const pngBuffer = PNG.sync.write(png);
 
