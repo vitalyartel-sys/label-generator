@@ -1,102 +1,22 @@
 const QRCode = require('qrcode');
 const { PNG } = require('pngjs');
+const FONT_8x8 = require('./font');
 
 // ==================== КОНФИГУРАЦИЯ ====================
 const CONFIG = {
   WIDTH: 384,
   HEIGHT: 260,
-  TEXT_X: 50,
-  TEXT_Y: 30,
-  FONT_SIZE: 8,
-  QR_SIZE: 150,
-  QR_MARGIN: 40
+  HEADER_HEIGHT_RATIO: 0.1, // 10% под заголовок
+  LOGO_WIDTH_RATIO: 0.5,    // Левая половина под логотип
+  QR_MARGIN: 20,
+  TEXT_X_PADDING: 10,
+  TEXT_Y_PADDING: 5
 };
 
-// ==================== ПРОСТОЙ ШРИФТ 8x8 ====================
-const FONT_8x8 = {
-  'П': [0xFF,0x81,0x81,0x81,0x81,0x81,0x81,0x81],
-  'Р': [0xFF,0x81,0x81,0xFF,0x80,0x80,0x80,0x80],
-  'И': [0x81,0x83,0x85,0x89,0x91,0xA1,0xC1,0x81],
-  'В': [0xFF,0x81,0x81,0xFF,0x81,0x81,0xFF,0x00],
-  'Е': [0xFF,0x80,0x80,0xFC,0x80,0x80,0xFF,0x00],
-  'Т': [0xFF,0x18,0x18,0x18,0x18,0x18,0x18,0x00],
-  '1': [0x08,0x18,0x28,0x08,0x08,0x08,0x3E,0x00],
-  '2': [0x3C,0x42,0x02,0x0C,0x30,0x40,0x7E,0x00],
-  '3': [0x3C,0x42,0x02,0x1C,0x02,0x42,0x3C,0x00],
-  ' ': [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
-};
-
-// ==================== ФУНКЦИИ ====================
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
 /**
- * Рисует вертикальный текст шрифтом 8x8
- */
-function drawVerticalText(buffer, text, startX, startY) {
-  const chars = text.toUpperCase().split('');
-  
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const glyph = FONT_8x8[char] || FONT_8x8['?'];
-    
-    if (!glyph) continue;
-    
-    // Каждая буква 8x8
-    for (let col = 0; col < 8; col++) {
-      const colData = glyph[col] || 0;
-      
-      for (let row = 0; row < 8; row++) {
-        // Проверяем бит (7-row чтобы получить слева направо)
-        if (colData & (1 << (7 - row))) {
-          // ПОВОРОТ на 90°: row -> X, col -> Y
-          const x = startX + row;
-          const y = startY + (i * 9) + col; // 9 = 8 + 1 пробел
-          
-          if (x >= 0 && x < CONFIG.HEIGHT && y >= 0 && y < CONFIG.WIDTH) {
-            const idx = (x * CONFIG.WIDTH + y) * 4;
-            buffer[idx] = 0;     // R - чёрный
-            buffer[idx + 1] = 0; // G
-            buffer[idx + 2] = 0; // B
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
- * Рисует горизонтальный текст (для отладки)
- */
-function drawHorizontalText(buffer, text, startX, startY) {
-  const chars = text.toUpperCase().split('');
-  
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const glyph = FONT_8x8[char] || FONT_8x8['?'];
-    
-    if (!glyph) continue;
-    
-    for (let row = 0; row < 8; row++) {
-      const rowData = glyph[row] || 0;
-      
-      for (let col = 0; col < 8; col++) {
-        if (rowData & (1 << (7 - col))) {
-          const x = startX + (i * 9) + col;
-          const y = startY + row;
-          
-          if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
-            const idx = (y * CONFIG.WIDTH + x) * 4;
-            buffer[idx] = 0;
-            buffer[idx + 1] = 0;
-            buffer[idx + 2] = 0;
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
- * Создаёт белый холст
+ * Создаёт белый холст RGBA
  */
 function createWhiteCanvas() {
   const buffer = new Uint8Array(CONFIG.WIDTH * CONFIG.HEIGHT * 4);
@@ -109,113 +29,154 @@ function createWhiteCanvas() {
   return buffer;
 }
 
-// ==================== ОСНОВНОЙ КОД ====================
+/**
+ * Рисует текст шрифтом 8x8 в заданной области (горизонтально)
+ * @param {Uint8Array} buffer — буфер изображения
+ * @param {string} text — текст для отрисовки
+ * @param {number} startX — X начала текста
+ * @param {number} startY — Y начала текста
+ * @param {number} maxWidth — максимальная ширина (в пикселях)
+ */
+function drawText(buffer, text, startX, startY, maxWidth = Infinity) {
+  const chars = text.toUpperCase().split('');
+  let currentX = startX;
+
+  for (const char of chars) {
+    const glyph = FONT_8x8[char] || FONT_8x8['?'] || Array(8).fill(0);
+
+    // Проверяем, помещается ли символ
+    if (currentX + 8 > startX + maxWidth) break;
+
+    for (let row = 0; row < 8; row++) {
+      const rowData = glyph[row] || 0;
+      for (let col = 0; col < 8; col++) {
+        if (rowData & (1 << (7 - col))) {
+          const x = currentX + col;
+          const y = startY + row;
+          if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
+            const idx = (y * CONFIG.WIDTH + x) * 4;
+            buffer[idx] = 0;
+            buffer[idx + 1] = 0;
+            buffer[idx + 2] = 0;
+          }
+        }
+      }
+    }
+
+    currentX += 9; // 8 пикселей + 1 пробел
+  }
+}
+
+/**
+ * Рисует прямоугольник (например, рамку или фон)
+ */
+function fillRect(buffer, x, y, w, h, r = 0, g = 0, b = 0) {
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      const px = x + dx;
+      const py = y + dy;
+      if (px >= 0 && px < CONFIG.WIDTH && py >= 0 && py < CONFIG.HEIGHT) {
+        const idx = (py * CONFIG.WIDTH + px) * 4;
+        buffer[idx] = r;
+        buffer[idx + 1] = g;
+        buffer[idx + 2] = b;
+      }
+    }
+  }
+}
+
+// ==================== ОСНОВНОЙ ЭКСПОРТНЫЙ ХЕНДЛЕР ====================
 
 module.exports = async (req, res) => {
   console.log('🚀 Запуск генератора этикеток');
-  
+
   try {
-    // Параметры
-    const text = req.query.text || 'ПРИВЕТ';
-    const qr = req.query.qr || 'https://ya.ru';
-    
-    console.log('Параметры:', { text, qr });
-    
-    // 1. СОЗДАЁМ БЕЛЫЙ ХОЛСТ
+    // === Параметры запроса ===
+    const headerText = (req.query.header || 'ЗАГОЛОВОК').toString();
+    const logoText = (req.query.logo || 'ЛОГОТИП').toString();
+    const qrContent = (req.query.qr || 'https://ya.ru').toString();
+
+    console.log('Параметры:', { headerText, logoText, qrContent });
+
+    // === Шаг 1: Создаём холст ===
     const buffer = createWhiteCanvas();
-    
-    // 2. КРАСНАЯ РАМКА
-    for (let x = 0; x < CONFIG.WIDTH; x++) {
-      let idx = (0 * CONFIG.WIDTH + x) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-      idx = ((CONFIG.HEIGHT-1) * CONFIG.WIDTH + x) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-    }
-    for (let y = 0; y < CONFIG.HEIGHT; y++) {
-      let idx = (y * CONFIG.WIDTH + 0) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-      idx = (y * CONFIG.WIDTH + (CONFIG.WIDTH-1)) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-    }
-    
-    // 3. ВЕРТИКАЛЬНЫЙ ТЕКСТ СЛЕВА
-    drawVerticalText(buffer, text, CONFIG.TEXT_X, CONFIG.TEXT_Y);
-    
-    // 4. ГОРИЗОНТАЛЬНЫЙ ТЕКСТ ВНИЗУ (отладка)
-    drawHorizontalText(buffer, text, 50, 200);
-    
-    // 5. QR-КОД
+
+    // === Шаг 2: Вычисляем зоны ===
+    const headerHeight = Math.floor(CONFIG.HEIGHT * CONFIG.HEADER_HEIGHT_RATIO);
+    const contentY = headerHeight;
+    const contentHeight = CONFIG.HEIGHT - headerHeight;
+    const halfWidth = Math.floor(CONFIG.WIDTH * CONFIG.LOGO_WIDTH_RATIO);
+
+    // === Шаг 3: Заголовок (верхняя полоса) ===
+    fillRect(buffer, 0, 0, CONFIG.WIDTH, headerHeight, 240, 240, 240); // светло-серый фон
+    drawText(
+      buffer,
+      headerText,
+      CONFIG.TEXT_X_PADDING,
+      CONFIG.TEXT_Y_PADDING,
+      CONFIG.WIDTH - 2 * CONFIG.TEXT_X_PADDING
+    );
+
+    // === Шаг 4: Логотип слева (текст как заглушка) ===
+    const logoStartX = CONFIG.TEXT_X_PADDING;
+    const logoStartY = contentY + CONFIG.TEXT_Y_PADDING;
+    drawText(buffer, logoText, logoStartX, logoStartY, halfWidth - 2 * CONFIG.TEXT_X_PADDING);
+
+    // === Шаг 5: QR-код справа ===
+    const qrSize = Math.min(contentHeight - 20, halfWidth - 2 * CONFIG.QR_MARGIN);
+    const qrX = CONFIG.WIDTH - qrSize - CONFIG.QR_MARGIN;
+    const qrY = contentY + Math.floor((contentHeight - qrSize) / 2);
+
     try {
       console.log('Генерация QR...');
-      const qrBuffer = await QRCode.toBuffer(qr, {
-        width: CONFIG.QR_SIZE,
+      const qrBuffer = await QRCode.toBuffer(qrContent, {
+        width: qrSize,
         margin: 1,
-        color: { dark: '#000000', light: '#FFFFFF' }
+        color: { dark: '#000000', light: '#FFFFFF' },
+        type: 'png'
       });
-      
+
       const qrImage = PNG.sync.read(qrBuffer);
-      const qrX = CONFIG.WIDTH - CONFIG.QR_SIZE - CONFIG.QR_MARGIN;
-      const qrY = Math.floor((CONFIG.HEIGHT - CONFIG.QR_SIZE) / 2);
-      
-      for (let y = 0; y < CONFIG.QR_SIZE; y++) {
-        for (let x = 0; x < CONFIG.QR_SIZE; x++) {
-          const srcIdx = (y * CONFIG.QR_SIZE + x) * 4;
+
+      for (let y = 0; y < qrImage.height; y++) {
+        for (let x = 0; x < qrImage.width; x++) {
+          const srcIdx = (y * qrImage.width + x) * 4;
           const dstX = qrX + x;
           const dstY = qrY + y;
-          
+
           if (dstX >= 0 && dstX < CONFIG.WIDTH && dstY >= 0 && dstY < CONFIG.HEIGHT) {
             const dstIdx = (dstY * CONFIG.WIDTH + dstX) * 4;
-            
-            // Копируем чёрные пиксели
             if (qrImage.data[srcIdx] < 128) {
               buffer[dstIdx] = 0;
-              buffer[dstIdx+1] = 0;
-              buffer[dstIdx+2] = 0;
+              buffer[dstIdx + 1] = 0;
+              buffer[dstIdx + 2] = 0;
             }
           }
         }
       }
-      
-      console.log('QR готов');
-      
+
+      console.log('✅ QR готов');
     } catch (qrError) {
-      console.error('Ошибка QR:', qrError.message);
-      
-      // Заглушка если QR не сгенерировался
-      const qrX = CONFIG.WIDTH - CONFIG.QR_SIZE - CONFIG.QR_MARGIN;
-      const qrY = Math.floor((CONFIG.HEIGHT - CONFIG.QR_SIZE) / 2);
-      
-      for (let y = qrY; y < qrY + CONFIG.QR_SIZE; y++) {
-        for (let x = qrX; x < qrX + CONFIG.QR_SIZE; x++) {
-          const idx = (y * CONFIG.WIDTH + x) * 4;
-          buffer[idx] = 0;
-          buffer[idx+1] = 0;
-          buffer[idx+2] = 0;
-        }
-      }
+      console.error('Ошибка генерации QR:', qrError.message);
+      // Рисуем заглушку вместо QR
+      fillRect(buffer, qrX, qrY, qrSize, qrSize, 200, 200, 200);
+      drawText(buffer, 'QR ERR', qrX + 5, qrY + qrSize / 2 - 4, qrSize - 10);
     }
-    
-    // 6. СОЗДАЁМ PNG
-    const png = new PNG({
-      width: CONFIG.WIDTH,
-      height: CONFIG.HEIGHT
-    });
+
+    // === Шаг 6: Формируем и отправляем PNG ===
+    const png = new PNG({ width: CONFIG.WIDTH, height: CONFIG.HEIGHT });
     png.data = Buffer.from(buffer);
-    
-    // 7. ОТПРАВЛЯЕМ
+
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'no-cache');
-    
-    console.log('✅ Этикетка готова');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.end(PNG.sync.write(png));
-    
+
+    console.log('✅ Этикетка успешно сгенерирована');
   } catch (error) {
-    console.error('💥 Ошибка:', error);
-    
-    // Простая ошибка
+    console.error('💥 Критическая ошибка:', error);
     res.status(500).json({
-      error: error.message,
-      message: 'Ошибка генерации'
+      error: error.message || 'Неизвестная ошибка',
+      message: 'Ошибка генерации этикетки'
     });
   }
 };
