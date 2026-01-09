@@ -2,16 +2,20 @@ const { PNG } = require('pngjs');
 
 module.exports = async (req, res) => {
   try {
-    // 1. Получаем параметры
-    const text = req.query.text || 'ПРИВЕТ';
-    console.log('Получен текст:', text);
+    console.log('=== СТАРТ ГЕНЕРАЦИИ ===');
     
-    // 2. Создаём изображение 384x260
+    // Параметры
+    const text = req.query.text || 'ПРИВЕТ';
+    console.log('Текст:', text);
+    
+    // Размеры
     const WIDTH = 384;
     const HEIGHT = 260;
+    
+    // Создаём PNG
     const png = new PNG({ width: WIDTH, height: HEIGHT });
     
-    // 3. Заливаем БЕЛЫМ фоном
+    // 1. БЕЛЫЙ ФОН
     for (let i = 0; i < png.data.length; i += 4) {
       png.data[i] = 255;     // R
       png.data[i+1] = 255;   // G
@@ -19,7 +23,7 @@ module.exports = async (req, res) => {
       png.data[i+3] = 255;   // A
     }
     
-    // 4. Рисуем КРАСНУЮ РАМКУ (чтобы видеть границы)
+    // 2. КРАСНАЯ РАМКА (чтобы видеть границы)
     // Верх
     for (let x = 0; x < WIDTH; x++) {
       let idx = (0 * WIDTH + x) * 4;
@@ -49,20 +53,18 @@ module.exports = async (req, res) => {
       png.data[idx+2] = 0;
     }
     
-    // 5. Рисуем текст "ПРИВЕТ" ЧЁРНЫМИ БУКВАМИ
-    // Просто рисуем 6 чёрных прямоугольников (каждая буква)
-    
-    // П (первая буква)
+    // 3. ТЕКСТ "ПРИВЕТ" - 6 КВАДРАТОВ
+    // Буква П (30x30 пикселей)
     for (let y = 50; y < 80; y++) {
       for (let x = 30; x < 60; x++) {
         const idx = (y * WIDTH + x) * 4;
-        png.data[idx] = 0;
-        png.data[idx+1] = 0;
-        png.data[idx+2] = 0;
+        png.data[idx] = 0;       // R
+        png.data[idx+1] = 0;     // G
+        png.data[idx+2] = 0;     // B
       }
     }
     
-    // Р (вторая буква)
+    // Буква Р (следующая)
     for (let y = 50; y < 80; y++) {
       for (let x = 70; x < 100; x++) {
         const idx = (y * WIDTH + x) * 4;
@@ -72,7 +74,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    // И (третья буква)
+    // Буква И
     for (let y = 50; y < 80; y++) {
       for (let x = 110; x < 140; x++) {
         const idx = (y * WIDTH + x) * 4;
@@ -82,7 +84,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    // В (четвёртая буква)
+    // Буква В
     for (let y = 50; y < 80; y++) {
       for (let x = 150; x < 180; x++) {
         const idx = (y * WIDTH + x) * 4;
@@ -92,7 +94,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    // Е (пятая буква)
+    // Буква Е
     for (let y = 50; y < 80; y++) {
       for (let x = 190; x < 220; x++) {
         const idx = (y * WIDTH + x) * 4;
@@ -102,7 +104,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    // Т (шестая буква)
+    // Буква Т
     for (let y = 50; y < 80; y++) {
       for (let x = 230; x < 260; x++) {
         const idx = (y * WIDTH + x) * 4;
@@ -112,28 +114,40 @@ module.exports = async (req, res) => {
       }
     }
     
-    // 6. Рисуем ЗЕЛЁНУЮ ТОЧКУ в центре (чтобы видеть, что код работает)
+    // 4. ЗЕЛЁНАЯ ТОЧКА В ЦЕНТРЕ (чтобы знать, что работает)
     const centerX = Math.floor(WIDTH / 2);
     const centerY = Math.floor(HEIGHT / 2);
     const centerIdx = (centerY * WIDTH + centerX) * 4;
-    png.data[centerIdx] = 0;
-    png.data[centerIdx+1] = 255;
-    png.data[centerIdx+2] = 0;
+    png.data[centerIdx] = 0;      // R
+    png.data[centerIdx+1] = 255;  // G
+    png.data[centerIdx+2] = 0;    // B
     
-    // 7. Отправляем изображение
+    // 5. СИНЯЯ НАДПИСЬ ВНИЗУ "384x260"
+    for (let i = 0; i < 7; i++) {
+      for (let y = HEIGHT - 30; y < HEIGHT - 20; y++) {
+        for (let x = 50 + i*20; x < 60 + i*20; x++) {
+          const idx = (y * WIDTH + x) * 4;
+          png.data[idx] = 0;
+          png.data[idx+1] = 0;
+          png.data[idx+2] = 255;
+        }
+      }
+    }
+    
+    // Отправляем
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'no-cache');
     
-    console.log('Изображение готово!');
+    console.log('=== УСПЕШНО СГЕНЕРИРОВАНО ===');
     res.end(PNG.sync.write(png));
     
   } catch (error) {
-    console.error('ОШИБКА:', error);
+    console.error('=== ОШИБКА ===', error);
     
-    // Отправляем простой текст об ошибке
+    // Простая текстовая ошибка
     res.status(500).json({
-      error: error.message,
-      message: 'Произошла ошибка при генерации изображения'
+      success: false,
+      message: 'Ошибка генерации: ' + error.message
     });
   }
 };
