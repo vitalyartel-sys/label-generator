@@ -1,268 +1,39 @@
-// ==================== КОНФИГУРАЦИЯ ====================
+const { PNG } = require('pngjs');
+
 const CONFIG = {
   WIDTH: 384,
   HEIGHT: 260,
-  TEXT_X: 30,
-  TEXT_Y: 100,
-  QR_SIZE: 150,
-  QR_X: 384 - 150 - 40,
-  QR_Y: 55,
-  FONT_SIZE: 12,  // Увеличили размер шрифта
-  LETTER_SPACING: 1
+  FONT_WIDTH: 4,    // 4 пикселя в ширину
+  FONT_HEIGHT: 6,   // 6 пикселей в высоту
+  LETTER_SPACING: 1,
+  TEXT_OFFSET_X: 30,  // отступ слева
+  TEXT_OFFSET_Y: 50   // отступ сверху
 };
 
-// ==================== УЛУЧШЕННЫЙ ШРИФТ 12x16 ====================
-// Более читаемый, похожий на Calibri
-const FONT_12x16 = {
-  'А': [
-    0x0F80, 0x1FC0, 0x39E0, 0x7070, 0x7070, 0x7070, 0xFFF0, 0xFFF0,
-    0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x0000
-  ],
-  'Б': [
-    0xFFC0, 0xFFE0, 0x7000, 0x7000, 0x7000, 0x7F80, 0x7FC0, 0x70E0,
-    0x7070, 0x7070, 0x7070, 0x70E0, 0x7FC0, 0x7F80, 0x0000, 0x0000
-  ],
-  'В': [
-    0xFF80, 0xFFC0, 0x71E0, 0x7070, 0x7070, 0x71E0, 0x7FC0, 0x7FC0,
-    0x71E0, 0x7070, 0x7070, 0x71E0, 0xFFC0, 0xFF80, 0x0000, 0x0000
-  ],
-  'Г': [
-    0xFFF0, 0xFFF0, 0x7000, 0x7000, 0x7000, 0x7000, 0x7000, 0x7000,
-    0x7000, 0x7000, 0x7000, 0x7000, 0x7000, 0x7000, 0x0000, 0x0000
-  ],
-  'Д': [
-    0x0FE0, 0x1FF0, 0x3C78, 0x3838, 0x3838, 0x3838, 0x3838, 0x3838,
-    0x3838, 0x3838, 0x3838, 0x7FFC, 0x7FFC, 0xE00E, 0xE00E, 0x0000
-  ],
-  'Е': [
-    0xFFF0, 0xFFF0, 0x7000, 0x7000, 0x7000, 0x7FF0, 0x7FF0, 0x7000,
-    0x7000, 0x7000, 0x7000, 0x7000, 0xFFF0, 0xFFF0, 0x0000, 0x0000
-  ],
-  'Ж': [
-    0xE38E, 0xE38E, 0x739C, 0x739C, 0x3BB8, 0x1FF0, 0x1FF0, 0x0FE0,
-    0x1FF0, 0x1FF0, 0x3BB8, 0x739C, 0x739C, 0xE38E, 0xE38E, 0x0000
-  ],
-  'З': [
-    0x3F80, 0x7FC0, 0xF1E0, 0xE0E0, 0x00E0, 0x03C0, 0x0F80, 0x0FC0,
-    0x01E0, 0x00E0, 0xE0E0, 0xF1E0, 0x7FC0, 0x3F80, 0x0000, 0x0000
-  ],
-  'И': [
-    0x7038, 0x7078, 0x70F8, 0x71F8, 0x73B8, 0x7738, 0x7E38, 0x7C38,
-    0x7C38, 0x7E38, 0x7738, 0x73B8, 0x71F8, 0x70F8, 0x7078, 0x7038
-  ],
-  'К': [
-    0x7070, 0x70E0, 0x71C0, 0x7380, 0x7700, 0x7E00, 0x7C00, 0x7E00,
-    0x7F00, 0x7780, 0x73C0, 0x71E0, 0x70F0, 0x7078, 0x0000, 0x0000
-  ],
-  'Л': [
-    0x0FF0, 0x1FF0, 0x3C70, 0x3870, 0x3870, 0x3870, 0x3870, 0x3870,
-    0x3870, 0x3870, 0x3870, 0x3870, 0x3870, 0x3870, 0x0000, 0x0000
-  ],
-  'М': [
-    0xE00E, 0xF01E, 0xF01E, 0xF83E, 0xF83E, 0xFC7E, 0xEFEE, 0xEFEE,
-    0xE7CE, 0xE7CE, 0xE38E, 0xE38E, 0xE00E, 0xE00E, 0x0000, 0x0000
-  ],
-  'Н': [
-    0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7FF0, 0x7FF0,
-    0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x0000, 0x0000
-  ],
-  'О': [
-    0x1F80, 0x3FC0, 0x79E0, 0x70E0, 0xF0F0, 0xE070, 0xE070, 0xE070,
-    0xE070, 0xF0F0, 0x70E0, 0x79E0, 0x3FC0, 0x1F80, 0x0000, 0x0000
-  ],
-  'П': [
-    0x7FF0, 0x7FF0, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070,
-    0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x0000, 0x0000
-  ],
-  'Р': [
-    0x7F80, 0x7FC0, 0x71E0, 0x70E0, 0x70E0, 0x70E0, 0x71E0, 0x7FC0,
-    0x7F80, 0x7000, 0x7000, 0x7000, 0x7000, 0x7000, 0x0000, 0x0000
-  ],
-  'С': [
-    0x1F80, 0x3FC0, 0x79E0, 0x70E0, 0xF000, 0xE000, 0xE000, 0xE000,
-    0xE000, 0xF000, 0x70E0, 0x79E0, 0x3FC0, 0x1F80, 0x0000, 0x0000
-  ],
-  'Т': [
-    0xFFF0, 0xFFF0, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00,
-    0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0000, 0x0000
-  ],
-  'У': [
-    0xE070, 0x70E0, 0x39C0, 0x1F80, 0x0F00, 0x0F00, 0x1F80, 0x39C0,
-    0x70E0, 0xE070, 0xE070, 0xE070, 0x70E0, 0x3FC0, 0x1F80, 0x0000
-  ],
-  'Ф': [
-    0x0E00, 0x3F80, 0x7FC0, 0xFFE0, 0xECE0, 0xECE0, 0xECE0, 0xECE0,
-    0xECE0, 0xFFE0, 0x7FC0, 0x3F80, 0x0E00, 0x0E00, 0x0000, 0x0000
-  ],
-  'Х': [
-    0xE0E0, 0x71C0, 0x3B80, 0x1F00, 0x0E00, 0x0E00, 0x1F00, 0x3B80,
-    0x71C0, 0xE0E0, 0xE0E0, 0xE0E0, 0x0000, 0x0000, 0x0000, 0x0000
-  ],
-  'Ц': [
-    0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070,
-    0x7070, 0x7070, 0x7FF0, 0x7FF0, 0x0030, 0x0030, 0x0000, 0x0000
-  ],
-  'Ч': [
-    0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7070, 0x7FF0, 0x7FF0,
-    0x0070, 0x0070, 0x0070, 0x0070, 0x0070, 0x0070, 0x0000, 0x0000
-  ],
-  'Ш': [
-    0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E,
-    0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xFFFE, 0xFFFE, 0x0000, 0x0000
-  ],
-  'Щ': [
-    0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E, 0xE38E,
-    0xE38E, 0xE38E, 0xFFFE, 0xFFFE, 0x000E, 0x000E, 0x000E, 0x0000
-  ],
-  'Ъ': [
-    0xFC00, 0xFC00, 0x1C00, 0x1C00, 0x1F80, 0x1FC0, 0x1CE0, 0x1C70,
-    0x1C70, 0x1C70, 0x1C70, 0x1CE0, 0x1FC0, 0x1F80, 0x0000, 0x0000
-  ],
-  'Ы': [
-    0xE070, 0xE070, 0xE070, 0xE070, 0xE070, 0xFF70, 0xFF70, 0xE1F0,
-    0xE0F0, 0xE0F0, 0xE0F0, 0xE1F0, 0xFF70, 0xFF70, 0x0000, 0x0000
-  ],
-  'Ь': [
-    0x7000, 0x7000, 0x7000, 0x7000, 0x7000, 0x7F80, 0x7FC0, 0x70E0,
-    0x7070, 0x7070, 0x7070, 0x70E0, 0x7FC0, 0x7F80, 0x0000, 0x0000
-  ],
-  'Э': [
-    0x3F80, 0x7FC0, 0xF1E0, 0xE0E0, 0x00E0, 0x07E0, 0x07E0, 0x00E0,
-    0x00E0, 0xE0E0, 0xF1E0, 0x7FC0, 0x3F80, 0x0000, 0x0000, 0x0000
-  ],
-  'Ю': [
-    0x73C0, 0x77E0, 0x7EF0, 0x7C70, 0x7870, 0xF870, 0xF870, 0xF870,
-    0xF870, 0x7870, 0x7C70, 0x7EF0, 0x77E0, 0x73C0, 0x0000, 0x0000
-  ],
-  'Я': [
-    0x0FC0, 0x1FE0, 0x3C70, 0x3870, 0x3870, 0x3C70, 0x1FF0, 0x0FF0,
-    0x0770, 0x0E70, 0x1C70, 0x3870, 0x7070, 0xE070, 0x0000, 0x0000
-  ],
-  
-  // Цифры (12x16)
-  '0': [
-    0x1F80, 0x3FC0, 0x79E0, 0x70E0, 0xF0F0, 0xE070, 0xE070, 0xE070,
-    0xE070, 0xF0F0, 0x70E0, 0x79E0, 0x3FC0, 0x1F80, 0x0000, 0x0000
-  ],
-  '1': [
-    0x0E00, 0x1E00, 0x3E00, 0x7E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00,
-    0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0000, 0x0000
-  ],
-  '2': [
-    0x3F80, 0x7FC0, 0xF1E0, 0xE0E0, 0x00E0, 0x01C0, 0x0380, 0x0700,
-    0x0E00, 0x1C00, 0x3800, 0x7000, 0xFFE0, 0xFFE0, 0x0000, 0x0000
-  ],
-  '3': [
-    0x3F80, 0x7FC0, 0xF1E0, 0xE0E0, 0x00E0, 0x07C0, 0x07C0, 0x00E0,
-    0x00E0, 0xE0E0, 0xF1E0, 0x7FC0, 0x3F80, 0x0000, 0x0000, 0x0000
-  ],
-  '4': [
-    0x03C0, 0x07C0, 0x0FC0, 0x1DC0, 0x39C0, 0x71C0, 0xE1C0, 0xFFE0,
-    0xFFE0, 0x01C0, 0x01C0, 0x01C0, 0x01C0, 0x01C0, 0x0000, 0x0000
-  ],
-  '5': [
-    0xFFE0, 0xFFE0, 0xE000, 0xE000, 0xFF80, 0xFFC0, 0x01E0, 0x00E0,
-    0x00E0, 0xE0E0, 0xF1E0, 0x7FC0, 0x3F80, 0x0000, 0x0000, 0x0000
-  ],
-  '6': [
-    0x1F80, 0x3FC0, 0x79E0, 0x70E0, 0xE000, 0xEF80, 0xFFC0, 0xF1E0,
-    0xE0E0, 0xE0E0, 0x70E0, 0x79E0, 0x3FC0, 0x1F80, 0x0000, 0x0000
-  ],
-  '7': [
-    0xFFE0, 0xFFE0, 0x00E0, 0x01C0, 0x0380, 0x0700, 0x0E00, 0x0E00,
-    0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0000, 0x0000
-  ],
-  '8': [
-    0x1F80, 0x3FC0, 0x79E0, 0x70E0, 0x70E0, 0x79E0, 0x3FC0, 0x3FC0,
-    0x79E0, 0x70E0, 0x70E0, 0x79E0, 0x3FC0, 0x1F80, 0x0000, 0x0000
-  ],
-  '9': [
-    0x1F80, 0x3FC0, 0x79E0, 0x70E0, 0xE0E0, 0xE0E0, 0x71E0, 0x7FE0,
-    0x3EE0, 0x00E0, 0x70E0, 0x79E0, 0x3FC0, 0x1F80, 0x0000, 0x0000
-  ],
-  
-  // Специальные символы
-  '?': [
-    0x3F80, 0x7FC0, 0xF1E0, 0xE0E0, 0x00E0, 0x01C0, 0x0380, 0x0700,
-    0x0E00, 0x0E00, 0x0000, 0x0000, 0x0E00, 0x0E00, 0x0000, 0x0000
-  ],
-  '!': [
-    0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00, 0x0E00,
-    0x0E00, 0x0E00, 0x0000, 0x0000, 0x0E00, 0x0E00, 0x0000, 0x0000
-  ],
-  '.': [
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0E00, 0x0E00, 0x0000, 0x0000
-  ],
-  ',': [
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    0x0000, 0x0000, 0x0E00, 0x0E00, 0x1C00, 0x1800, 0x0000, 0x0000
-  ],
-  '-': [
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFE0, 0xFFE0,
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
-  ],
-  ' ': [
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
-  ]
-};
-
-// ==================== ФУНКЦИИ ====================
+// Шрифт 4x6 (выше)
 
 /**
- * Рисует текст улучшенным шрифтом 12x16
- */
-function drawText(buffer, text, startX, startY) {
-  const chars = text.toUpperCase().split('');
-  
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const glyph = FONT_12x16[char] || FONT_12x16['?'];
-    
-    // Каждая буква 12x16 пикселей
-    for (let row = 0; row < 16; row++) {
-      const rowData = glyph[row];
-      
-      for (let col = 0; col < 12; col++) {
-        // Проверяем бит (12-битные данные, проверяем 11-col бит)
-        if (rowData & (1 << (11 - col))) {
-          const x = startX + i * (CONFIG.FONT_SIZE + CONFIG.LETTER_SPACING) + col;
-          const y = startY + row;
-          
-          if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
-            const idx = (y * CONFIG.WIDTH + x) * 4;
-            buffer[idx] = 0;     // R - чёрный
-            buffer[idx + 1] = 0; // G
-            buffer[idx + 2] = 0; // B
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
- * Рисует текст ВЕРТИКАЛЬНО (повёрнутый на 90°)
+ * Рисует текст ВЕРТИКАЛЬНО (повёрнутый на 90° по часовой стрелке)
  */
 function drawVerticalText(buffer, text, startX, startY) {
   const chars = text.toUpperCase().split('');
   
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const glyph = FONT_12x16[char] || FONT_12x16['?'];
+  for (let letterIndex = 0; letterIndex < chars.length; letterIndex++) {
+    const char = chars[letterIndex];
+    const glyph = FONT_4x6[char] || FONT_4x6['?'];
     
-    // Каждая буква 12x16 пикселей
-    for (let row = 0; row < 16; row++) {
-      const rowData = glyph[row];
+    // Каждая буква 4x6 пикселей
+    for (let row = 0; row < CONFIG.FONT_HEIGHT; row++) {
+      const rowData = glyph[row] || 0;
       
-      for (let col = 0; col < 12; col++) {
-        if (rowData & (1 << (11 - col))) {
+      for (let col = 0; col < CONFIG.FONT_WIDTH; col++) {
+        // Проверяем бит (справа налево для 4-битных данных)
+        if (rowData & (1 << (CONFIG.FONT_WIDTH - 1 - col))) {
           // ПОВОРОТ НА 90° ПО ЧАСОВОЙ СТРЕЛКЕ
           // row -> X координата (вертикаль)
           // col -> Y координата (горизонталь)
           const x = startX + row;
-          const y = startY + i * (CONFIG.FONT_SIZE + CONFIG.LETTER_SPACING) + col;
+          const y = startY + letterIndex * (CONFIG.FONT_WIDTH + CONFIG.LETTER_SPACING) + col;
           
           if (x >= 0 && x < CONFIG.HEIGHT && y >= 0 && y < CONFIG.WIDTH) {
             const idx = (x * CONFIG.WIDTH + y) * 4;
@@ -277,106 +48,107 @@ function drawVerticalText(buffer, text, startX, startY) {
 }
 
 /**
- * Создаёт белый холст
+ * Рисует текст ГОРИЗОНТАЛЬНО (для теста)
  */
-function createWhiteCanvas() {
-  const buffer = new Uint8Array(CONFIG.WIDTH * CONFIG.HEIGHT * 4);
-  for (let i = 0; i < buffer.length; i += 4) {
-    buffer[i] = 255;     // R
-    buffer[i + 1] = 255; // G
-    buffer[i + 2] = 255; // B
-    buffer[i + 3] = 255; // A
+function drawHorizontalText(buffer, text, startX, startY) {
+  const chars = text.toUpperCase().split('');
+  
+  for (let i = 0; i < chars.length; i++) {
+    const char = chars[i];
+    const glyph = FONT_4x6[char] || FONT_4x6['?'];
+    
+    for (let row = 0; row < CONFIG.FONT_HEIGHT; row++) {
+      const rowData = glyph[row] || 0;
+      
+      for (let col = 0; col < CONFIG.FONT_WIDTH; col++) {
+        if (rowData & (1 << (CONFIG.FONT_WIDTH - 1 - col))) {
+          const x = startX + i * (CONFIG.FONT_WIDTH + CONFIG.LETTER_SPACING) + col;
+          const y = startY + row;
+          
+          if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
+            const idx = (y * CONFIG.WIDTH + x) * 4;
+            buffer[idx] = 0;
+            buffer[idx + 1] = 0;
+            buffer[idx + 2] = 0;
+          }
+        }
+      }
+    }
   }
-  return buffer;
 }
-
-// ==================== ОСНОВНОЙ КОД ====================
-
-const { PNG } = require('pngjs');
 
 module.exports = async (req, res) => {
   try {
-    console.log('=== ГЕНЕРАЦИЯ ЭТИКЕТКИ ===');
-    
-    // Получаем параметры
     const text = req.query.text || 'ПРИВЕТ';
-    console.log('Текст:', text);
+    console.log('Генерация с шрифтом 4x6:', text);
     
-    // 1. Создаём белый холст
-    const buffer = createWhiteCanvas();
+    const buffer = new Uint8Array(CONFIG.WIDTH * CONFIG.HEIGHT * 4);
     
-    // 2. Рисуем текст СЛЕВА ВЕРТИКАЛЬНО (читается сверху вниз)
-    console.log('Рисуем вертикальный текст');
-    drawVerticalText(buffer, text, 50, 30);  // (x=50 отступ слева, y=30 отступ сверху)
+    // 1. БЕЛЫЙ ФОН
+    for (let i = 0; i < buffer.length; i += 4) {
+      buffer[i] = 255;
+      buffer[i+1] = 255;
+      buffer[i+2] = 255;
+      buffer[i+3] = 255;
+    }
     
-    // 3. Рисуем текст ГОРИЗОНТАЛЬНО для сравнения (внизу)
-    console.log('Рисуем горизонтальный текст для сравнения');
-    drawText(buffer, text, 50, 200);
+    // 2. КРАСНАЯ РАМКА
+    for (let x = 0; x < CONFIG.WIDTH; x++) {
+      let idx = (0 * CONFIG.WIDTH + x) * 4;
+      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
+      idx = ((CONFIG.HEIGHT-1) * CONFIG.WIDTH + x) * 4;
+      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
+    }
+    for (let y = 0; y < CONFIG.HEIGHT; y++) {
+      let idx = (y * CONFIG.WIDTH + 0) * 4;
+      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
+      idx = (y * CONFIG.WIDTH + (CONFIG.WIDTH-1)) * 4;
+      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
+    }
     
-    // 4. Рисуем заглушку QR-кода справа
-    const qrSize = CONFIG.QR_SIZE;
-    const qrX = CONFIG.QR_X;
-    const qrY = CONFIG.QR_Y;
+    // 3. ВЕРТИКАЛЬНЫЙ ТЕКСТ СЛЕВА (основной)
+    drawVerticalText(buffer, text, 50, 30);
     
-    // Внешний чёрный квадрат
+    // 4. ГОРИЗОНТАЛЬНЫЙ ТЕКСТ ВНИЗУ (для сравнения)
+    drawHorizontalText(buffer, text, 50, 200);
+    
+    // 5. QR-ЗАГЛУШКА СПРАВА
+    const qrSize = 150;
+    const qrX = CONFIG.WIDTH - qrSize - 40;
+    const qrY = Math.floor((CONFIG.HEIGHT - qrSize) / 2);
+    
     for (let y = qrY; y < qrY + qrSize; y++) {
       for (let x = qrX; x < qrX + qrSize; x++) {
         const idx = (y * CONFIG.WIDTH + x) * 4;
         buffer[idx] = 0;
-        buffer[idx + 1] = 0;
-        buffer[idx + 2] = 0;
+        buffer[idx+1] = 0;
+        buffer[idx+2] = 0;
       }
     }
     
-    // Внутренний белый квадрат (рамка)
-    const margin = 10;
-    for (let y = qrY + margin; y < qrY + qrSize - margin; y++) {
-      for (let x = qrX + margin; x < qrX + qrSize - margin; x++) {
+    // Белая рамка внутри QR
+    for (let y = qrY + 10; y < qrY + qrSize - 10; y++) {
+      for (let x = qrX + 10; x < qrX + qrSize - 10; x++) {
         const idx = (y * CONFIG.WIDTH + x) * 4;
         buffer[idx] = 255;
-        buffer[idx + 1] = 255;
-        buffer[idx + 2] = 255;
+        buffer[idx+1] = 255;
+        buffer[idx+2] = 255;
       }
     }
     
-    // Буква "Q" в центре QR
-    const qCenterX = qrX + Math.floor(qrSize / 2);
-    const qCenterY = qrY + Math.floor(qrSize / 2);
-    for (let y = qCenterY - 10; y < qCenterY + 10; y++) {
-      for (let x = qCenterX - 10; x < qCenterX + 10; x++) {
-        const idx = (y * CONFIG.WIDTH + x) * 4;
-        buffer[idx] = 0;
-        buffer[idx + 1] = 0;
-        buffer[idx + 2] = 0;
-      }
-    }
-    
-    // Белый круг внутри Q
-    for (let y = qCenterY - 6; y < qCenterY + 6; y++) {
-      for (let x = qCenterX - 6; x < qCenterX + 6; x++) {
-        const idx = (y * CONFIG.WIDTH + x) * 4;
-        buffer[idx] = 255;
-        buffer[idx + 1] = 255;
-        buffer[idx + 2] = 255;
-      }
-    }
-    
-    // 5. Создаём PNG
+    // 6. СОЗДАЁМ PNG
     const png = new PNG({
       width: CONFIG.WIDTH,
       height: CONFIG.HEIGHT
     });
     png.data = Buffer.from(buffer);
     
-    // 6. Отправляем
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'no-cache');
-    
-    console.log('=== ЭТИКЕТКА ГОТОВА ===');
     res.end(PNG.sync.write(png));
     
   } catch (error) {
-    console.error('=== ОШИБКА ===', error);
+    console.error('Ошибка:', error);
     res.status(500).json({ error: error.message });
   }
 };
