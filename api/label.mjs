@@ -1,18 +1,57 @@
 import QRCode from 'qrcode';
 import { PNG } from 'pngjs';
 
-// ==================== ПРАВИЛЬНЫЙ ШРИФТ 8x8 ====================
+// Оптимизированная конфигурация
+const CONFIG = {
+  WIDTH: 384,
+  HEIGHT: 260,
+  QR_SIZE: 180,
+  TEXT_OFFSET_X: 20,
+  TEXT_OFFSET_Y: 30,
+  QR_OFFSET_RIGHT: 40,
+  FONT_CHAR_WIDTH: 8,
+  FONT_CHAR_HEIGHT: 8,
+  LETTER_SPACING: 1  // +1px между буквами
+};
+
+// Шрифт 8x8 (оптимизированный только нужные символы)
 const FONT_8x8 = {
-  // Только нужные буквы для "ТЕСТ"
-  'Т': [0xFF,0x18,0x18,0x18,0x18,0x18,0x18,0x00], // Т
-  'Е': [0xFF,0xC0,0xC0,0xFC,0xC0,0xC0,0xFF,0x00], // Е  
-  'С': [0x3C,0x42,0x80,0x80,0x80,0x42,0x3C,0x00], // С
-  'П': [0xFF,0x81,0x81,0x81,0x81,0x81,0x81,0x00], // П
-  'Р': [0xFF,0x81,0x81,0xFF,0x80,0x80,0x80,0x00], // Р
-  'И': [0x81,0x83,0x85,0x89,0x91,0xA1,0xC1,0x00], // И
-  'В': [0xFF,0x81,0x81,0xFF,0x81,0x81,0xFF,0x00], // В
-  'А': [0x18,0x24,0x42,0x42,0x7E,0x42,0x42,0x00], // А
-  'Б': [0xFE,0x80,0x80,0xFC,0x82,0x82,0xFC,0x00], // Б
+  // Русские буквы
+  'А': [0x18,0x24,0x42,0x42,0x7E,0x42,0x42,0x00],
+  'Б': [0xFE,0x80,0x80,0xFC,0x82,0x82,0xFC,0x00],
+  'В': [0xFF,0x81,0x81,0xFF,0x81,0x81,0xFF,0x00],
+  'Г': [0xFF,0x80,0x80,0x80,0x80,0x80,0x80,0x00],
+  'Д': [0x0C,0x12,0x22,0x22,0x22,0x22,0x7F,0x41],
+  'Е': [0xFF,0xC0,0xC0,0xFC,0xC0,0xC0,0xFF,0x00],
+  'Ё': [0x66,0x00,0xFF,0xC0,0xFC,0xC0,0xFF,0x00],
+  'Ж': [0x91,0x91,0x91,0x7C,0x54,0x92,0x92,0x00],
+  'З': [0x7C,0x82,0x02,0x1C,0x02,0x82,0x7C,0x00],
+  'И': [0x81,0x83,0x85,0x89,0x91,0xA1,0xC1,0x00],
+  'Й': [0x24,0x18,0x81,0x83,0x85,0x89,0xC1,0x00],
+  'К': [0x81,0x82,0x84,0xF8,0x84,0x82,0x81,0x00],
+  'Л': [0x0F,0x10,0x10,0x10,0x10,0x10,0x1F,0x10],
+  'М': [0x81,0xC3,0xA5,0x99,0x81,0x81,0x81,0x00],
+  'Н': [0x81,0x81,0x81,0xFF,0x81,0x81,0x81,0x00],
+  'О': [0x3C,0x42,0x81,0x81,0x81,0x42,0x3C,0x00],
+  'П': [0xFF,0x81,0x81,0x81,0x81,0x81,0x81,0x00],
+  'Р': [0xFF,0x81,0x81,0xFF,0x80,0x80,0x80,0x00],
+  'С': [0x3C,0x42,0x80,0x80,0x80,0x42,0x3C,0x00],
+  'Т': [0xFF,0x18,0x18,0x18,0x18,0x18,0x18,0x00],
+  'У': [0x81,0x42,0x24,0x18,0x18,0x10,0x60,0x00],
+  'Ф': [0x18,0x24,0x24,0x18,0x24,0x24,0x18,0x00],
+  'Х': [0x81,0x42,0x24,0x18,0x24,0x42,0x81,0x00],
+  'Ц': [0x82,0x82,0x82,0x82,0x82,0x82,0x7F,0x01],
+  'Ч': [0x81,0x81,0x81,0x7F,0x01,0x01,0x01,0x00],
+  'Ш': [0x81,0x81,0x81,0x81,0x81,0x81,0xFF,0x00],
+  'Щ': [0x92,0x92,0x92,0x92,0x92,0x92,0xFF,0x01],
+  'Ъ': [0xE0,0x40,0x40,0x7C,0x42,0x42,0x7C,0x00],
+  'Ы': [0x81,0x81,0x81,0xF9,0x85,0x85,0xF9,0x00],
+  'Ь': [0x80,0x80,0x80,0xFC,0x82,0x82,0xFC,0x00],
+  'Э': [0x7C,0x82,0x01,0x1F,0x01,0x82,0x7C,0x00],
+  'Ю': [0x86,0x89,0x91,0xF1,0x91,0x89,0x86,0x00],
+  'Я': [0x3F,0x41,0x41,0x3F,0x05,0x09,0x71,0x00],
+  
+  // Цифры
   '0': [0x3C,0x42,0x81,0x81,0x81,0x42,0x3C,0x00],
   '1': [0x08,0x18,0x28,0x08,0x08,0x08,0x3E,0x00],
   '2': [0x3C,0x42,0x02,0x0C,0x30,0x40,0x7E,0x00],
@@ -22,43 +61,39 @@ const FONT_8x8 = {
   '6': [0x1C,0x20,0x40,0x7C,0x42,0x42,0x3C,0x00],
   '7': [0x7E,0x02,0x04,0x08,0x10,0x20,0x40,0x00],
   '8': [0x3C,0x42,0x42,0x3C,0x42,0x42,0x3C,0x00],
-  '9': [0x3C,0x42,0x42,0x3E,0x02,0x04,0x38,0x00]
+  '9': [0x3C,0x42,0x42,0x3E,0x02,0x04,0x38,0x00],
+  
+  // Специальные символы
+  '?': [0x3C,0x42,0x02,0x0C,0x10,0x00,0x10,0x00],
+  '!': [0x18,0x18,0x18,0x18,0x00,0x00,0x18,0x00],
+  '.': [0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x00],
+  ',': [0x00,0x00,0x00,0x00,0x18,0x18,0x30,0x00],
+  '-': [0x00,0x00,0x00,0x7E,0x00,0x00,0x00,0x00],
+  ' ': [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
 };
 
-/**
- * Рисует текст, повёрнутый на 90° ПО ЧАСОВОЙ СТРЕЛКЕ
- * (читается сверху вниз, слева)
- */
-function drawRotatedText90(buffer, width, height, text, offsetX, offsetY) {
+function drawRotatedText90(buffer, text, offsetX, offsetY) {
   const chars = String(text).toUpperCase().split('');
   
-  // Для каждой буквы
   for (let letterIndex = 0; letterIndex < chars.length; letterIndex++) {
     const char = chars[letterIndex];
-    const glyph = FONT_8x8[char] || FONT_8x8['?'] || Array(8).fill(0x00);
+    const glyph = FONT_8x8[char] || FONT_8x8['?'];
+    const letterY = offsetY + letterIndex * (CONFIG.FONT_CHAR_WIDTH + CONFIG.LETTER_SPACING);
     
-    // Рисуем 8 столбцов (ширина буквы)
-    for (let col = 0; col < 8; col++) {
+    for (let col = 0; col < CONFIG.FONT_CHAR_WIDTH; col++) {
       const colData = glyph[col];
       
-      // Рисуем 8 строк (высота буквы)
-      for (let row = 0; row < 8; row++) {
-        // Если пиксель должен быть чёрным
+      for (let row = 0; row < CONFIG.FONT_CHAR_HEIGHT; row++) {
         if (colData & (1 << (7 - row))) {
-          // ПОВОРОТ НА 90° ПО ЧАСОВОЙ СТРЕЛКЕ:
-          // Исходный X становится Y
-          // Исходный Y становится (width - 1 - X)
-          const x = offsetX + row;                   // Горизонталь
-          const y = offsetY + letterIndex * 9 + col; // Вертикаль (9 = 8+1 пробел)
+          const x = offsetX + row;
+          const y = letterY + col;
           
-          // Проверяем границы
-          if (x >= 0 && x < height && y >= 0 && y < width) {
-            // ИНДЕКСАЦИЯ: (строка * ширина + столбец) * 4
-            const idx = (x * width + y) * 4;
+          if (x >= 0 && x < CONFIG.HEIGHT && y >= 0 && y < CONFIG.WIDTH) {
+            const idx = (x * CONFIG.WIDTH + y) * 4;
             buffer[idx] = 0;     // R
             buffer[idx + 1] = 0; // G
             buffer[idx + 2] = 0; // B
-            buffer[idx + 3] = 255; // A
+            // A уже установлена в 255
           }
         }
       }
@@ -66,86 +101,67 @@ function drawRotatedText90(buffer, width, height, text, offsetX, offsetY) {
   }
 }
 
-export default async function handler(req, res) {
+function createWhiteCanvas() {
+  const buffer = new Uint8Array(CONFIG.WIDTH * CONFIG.HEIGHT * 4);
+  for (let i = 0; i < buffer.length; i += 4) {
+    buffer[i] = 255;   // R
+    buffer[i+1] = 255; // G
+    buffer[i+2] = 255; // B
+    buffer[i+3] = 255; // A
+  }
+  return buffer;
+}
+
+async function generateQRCode(url) {
   try {
-    // Параметры
-    const text = decodeURIComponent(req.query.text || 'ТЕСТ');
-    const qr = decodeURIComponent(req.query.qr || 'https://ya.ru');
-    
-    console.log('Генерация этикетки:', { text, qr });
-    
-    // Размеры (ВАЖНО: 384x260 - это ШИРИНА x ВЫСОТА)
-    const WIDTH = 384;   // Ширина изображения (пикселей)
-    const HEIGHT = 260;  // Высота изображения (пикселей)
-    
-    // Создаём белый холст
-    const buffer = new Uint8Array(WIDTH * HEIGHT * 4);
-    for (let i = 0; i < buffer.length; i += 4) {
-      buffer[i] = 255;   // R
-      buffer[i+1] = 255; // G
-      buffer[i+2] = 255; // B
-      buffer[i+3] = 255; // A
-    }
-    
-    // === 1. ОТЛАДОЧНАЯ РАМКА (зелёная) ===
-    for (let x = 0; x < WIDTH; x++) {
-      // Верх
-      let idx = (0 * WIDTH + x) * 4;
-      buffer[idx] = 0; buffer[idx+1] = 255; buffer[idx+2] = 0;
-      // Низ
-      idx = ((HEIGHT-1) * WIDTH + x) * 4;
-      buffer[idx] = 0; buffer[idx+1] = 255; buffer[idx+2] = 0;
-    }
-    for (let y = 0; y < HEIGHT; y++) {
-      // Лево
-      let idx = (y * WIDTH + 0) * 4;
-      buffer[idx] = 0; buffer[idx+1] = 255; buffer[idx+2] = 0;
-      // Право
-      idx = (y * WIDTH + (WIDTH-1)) * 4;
-      buffer[idx] = 0; buffer[idx+1] = 255; buffer[idx+2] = 0;
-    }
-    
-    // === 2. ТЕКСТ СЛЕВА (вертикальный) ===
-    // offsetX = отступ сверху (20px)
-    // offsetY = отступ слева (30px)
-    console.log('Рисуем текст:', text, 'по координатам (20, 30)');
-    drawRotatedText90(buffer, WIDTH, HEIGHT, text, 20, 30);
-    
-    // === 3. ОТЛАДОЧНЫЕ МЕТКИ ===
-    // Красный пиксель в начале текста
-    const startIdx = (20 * WIDTH + 30) * 4;
-    buffer[startIdx] = 255; buffer[startIdx+1] = 0; buffer[startIdx+2] = 0;
-    
-    // Синий пиксель в конце текста
-    const endIdx = (100 * WIDTH + 30) * 4;
-    buffer[endIdx] = 0; buffer[endIdx+1] = 0; buffer[endIdx+2] = 255;
-    
-    // === 4. QR-КОД СПРАВА ===
-    const QR_SIZE = 180;
-    const qrBuffer = await QRCode.toBuffer(qr, {
-      width: QR_SIZE,
+    return await QRCode.toBuffer(url, {
+      width: CONFIG.QR_SIZE,
       margin: 1,
       color: { dark: '#000000', light: '#FFFFFF' }
     });
+  } catch (error) {
+    throw new Error(`Ошибка генерации QR: ${error.message}`);
+  }
+}
+
+export default async function handler(req, res) {
+  // Устанавливаем таймаут ответа
+  req.setTimeout(30000);
+  
+  try {
+    // Получаем параметры
+    const { text = 'ТЕСТ', qr = 'https://ya.ru' } = req.query;
+    const decodedText = decodeURIComponent(text);
+    const decodedQR = decodeURIComponent(qr);
     
+    console.log('Генерация этикетки:', { 
+      text: decodedText.substring(0, 50), 
+      qr: decodedQR.substring(0, 100) 
+    });
+    
+    // Создаём белый холст
+    const buffer = createWhiteCanvas();
+    
+    // Рисуем текст слева
+    drawRotatedText90(buffer, decodedText, CONFIG.TEXT_OFFSET_X, CONFIG.TEXT_OFFSET_Y);
+    
+    // Генерируем и рисуем QR-код справа
+    const qrBuffer = await generateQRCode(decodedQR);
     const qrImage = PNG.sync.read(qrBuffer);
     
-    // Позиция QR: справа, по центру вертикали
-    const qrX = Math.floor((HEIGHT - QR_SIZE) / 2);  // центрируем по вертикали
-    const qrY = WIDTH - QR_SIZE - 40;                // отступ справа 40px
+    const qrX = Math.floor((CONFIG.HEIGHT - CONFIG.QR_SIZE) / 2);
+    const qrY = CONFIG.WIDTH - CONFIG.QR_SIZE - CONFIG.QR_OFFSET_RIGHT;
     
-    console.log('QR позиция:', { qrX, qrY, QR_SIZE });
-    
-    for (let y = 0; y < QR_SIZE; y++) {
-      for (let x = 0; x < QR_SIZE; x++) {
-        const srcIdx = (y * QR_SIZE + x) * 4;
+    for (let y = 0; y < CONFIG.QR_SIZE; y++) {
+      for (let x = 0; x < CONFIG.QR_SIZE; x++) {
+        const srcIdx = (y * CONFIG.QR_SIZE + x) * 4;
         const dstX = qrX + x;
         const dstY = qrY + y;
         
-        if (dstX >= 0 && dstX < HEIGHT && dstY >= 0 && dstY < WIDTH) {
-          const dstIdx = (dstX * WIDTH + dstY) * 4;
+        if (dstX >= 0 && dstX < CONFIG.HEIGHT && dstY >= 0 && dstY < CONFIG.WIDTH) {
+          const dstIdx = (dstX * CONFIG.WIDTH + dstY) * 4;
           
-          // Копируем чёрные пиксели
+          // Копируем только чёрные пиксели
           if (qrImage.data[srcIdx] < 128) {
             buffer[dstIdx] = 0;
             buffer[dstIdx+1] = 0;
@@ -155,70 +171,35 @@ export default async function handler(req, res) {
       }
     }
     
-    // === 5. ПОДПИСЬ КООРДИНАТ (для отладки) ===
-    // В левом нижнем углу пишем размер
-    const sizeText = `${WIDTH}x${HEIGHT}`;
-    for (let i = 0; i < sizeText.length; i++) {
-      const char = sizeText[i];
-      for (let col = 0; col < 8; col++) {
-        for (let row = 0; row < 8; row++) {
-          const x = HEIGHT - 20 + row;
-          const y = 20 + i * 10 + col;
-          if (x < HEIGHT && y < WIDTH) {
-            const idx = (x * WIDTH + y) * 4;
-            buffer[idx] = 200;
-            buffer[idx+1] = 200;
-            buffer[idx+2] = 200;
-          }
-        }
-      }
-    }
-    
-    // === 6. СОЗДАЁМ PNG ===
-    const png = new PNG({ width: WIDTH, height: HEIGHT });
+    // Создаём PNG
+    const png = new PNG({ 
+      width: CONFIG.WIDTH, 
+      height: CONFIG.HEIGHT 
+    });
     png.data = Buffer.from(buffer);
     
-    // === 7. ОТПРАВЛЯЕМ ===
+    // Отправляем ответ
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Кэшируем на 1 час
+    res.setHeader('X-Label-Generator', 'v1.0');
     
-    console.log('Изображение готово, отправляем...');
     res.end(PNG.sync.write(png));
     
   } catch (error) {
-    console.error('ФАТАЛЬНАЯ ОШИБКА:', error);
+    console.error('Ошибка генерации:', error);
     
-    // Создаём изображение с текстом ошибки
-    const errorPng = new PNG({ width: 384, height: 260 });
+    // Создаём изображение с ошибкой
+    const errorPng = new PNG({ width: CONFIG.WIDTH, height: CONFIG.HEIGHT });
     
-    // Розовый фон
+    // Заливаем красным
     for (let i = 0; i < errorPng.data.length; i += 4) {
-      errorPng.data[i] = 255;
-      errorPng.data[i+1] = 220;
-      errorPng.data[i+2] = 220;
-      errorPng.data[i+3] = 255;
+      errorPng.data[i] = 255;     // R
+      errorPng.data[i+1] = 200;   // G
+      errorPng.data[i+2] = 200;   // B
+      errorPng.data[i+3] = 255;   // A
     }
     
-    // Чёрный текст
-    const errorMsg = `ERR: ${error.message.substring(0, 20)}`;
-    for (let i = 0; i < errorMsg.length; i++) {
-      const char = errorMsg[i];
-      for (let col = 0; col < 8; col++) {
-        for (let row = 0; row < 8; row++) {
-          const x = 50 + row;
-          const y = 50 + i * 10 + col;
-          if (x < 260 && y < 384) {
-            const idx = (x * 384 + y) * 4;
-            errorPng.data[idx] = 0;
-            errorPng.data[idx+1] = 0;
-            errorPng.data[idx+2] = 0;
-          }
-        }
-      }
-    }
-    
+    res.status(500);
     res.setHeader('Content-Type', 'image/png');
     res.end(PNG.sync.write(errorPng));
   }
