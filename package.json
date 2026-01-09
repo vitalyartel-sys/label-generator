@@ -1,12 +1,9 @@
 {
   "name": "label-generator",
   "version": "1.0.0",
-  "type": "commonjs",  // ← ВАЖНО: commonjs вместо module
+  "type": "commonjs",
   "dependencies": {
     "qrcode": "^1.5.3",
     "pngjs": "^7.0.0"
-  },
-  "engines": {
-    "node": ">=14"
   }
 }
