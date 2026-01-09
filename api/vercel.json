@@ -1,12 +1,18 @@
 {
   "functions": {
-    "api/*.mjs": {
-      "runtime": "nodejs18.x"
+    "api/label.mjs": {
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
-  "build": {
-    "env": {
-      "VERCEL_NO_ESM_WARNING": "1"
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
     }
-  }
+  ]
 }
