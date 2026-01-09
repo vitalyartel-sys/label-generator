@@ -6,13 +6,14 @@ const FONT_8x8 = require('./font');
 const CONFIG = {
   WIDTH: 384,
   HEIGHT: 260,
-  HEADER_HEIGHT_RATIO: 0.14, // чуть больше под две строки
+  HEADER_HEIGHT_RATIO: 0.14,
   LOGO_WIDTH_RATIO: 0.5,
   QR_MARGIN: 15,
   TEXT_TOP_PADDING: 8,
   TEXT_LEFT_PADDING: 12,
-  FONT_SCALE: 1.5, // был 2 → стал 1.5 (уменьшение на 25%)
-  LINE_SPACING: 14    // расстояние между строками (в пикселях)
+  FONT_SCALE: 1.5,
+  LINE_SPACING: 14,
+  ANTI_ALIASING: true // 🔥 Включаем сглаживание!
 };
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
@@ -29,15 +30,18 @@ function createWhiteCanvas() {
 }
 
 /**
- * Рисует один символ с дробным масштабированием (округление до целых пикселей)
+ * Рисует один символ с сглаживанием
  */
 function drawChar(buffer, glyph, startX, startY) {
   const scale = CONFIG.FONT_SCALE;
+
+  // Собираем все пиксели символа
+  const pixels = [];
+
   for (let row = 0; row < 8; row++) {
     const rowData = glyph[row] || 0;
     for (let col = 0; col < 8; col++) {
       if (rowData & (1 << (7 - col))) {
-        // Округляем координаты
         const x0 = Math.floor(startX + col * scale);
         const y0 = Math.floor(startY + row * scale);
         const x1 = Math.floor(startX + (col + 1) * scale);
@@ -46,20 +50,76 @@ function drawChar(buffer, glyph, startX, startY) {
         for (let y = y0; y < y1; y++) {
           for (let x = x0; x < x1; x++) {
             if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
-              const idx = (y * CONFIG.WIDTH + x) * 4;
-              buffer[idx] = 0;
-              buffer[idx + 1] = 0;
-              buffer[idx + 2] = 0;
+              pixels.push({ x, y });
             }
           }
         }
       }
     }
   }
+
+  // Рисуем основной контур (черный)
+  for (const p of pixels) {
+    const idx = (p.y * CONFIG.WIDTH + p.x) * 4;
+    buffer[idx] = 0;
+    buffer[idx + 1] = 0;
+    buffer[idx + 2] = 0;
+    buffer[idx + 3] = 255;
+  }
+
+  // Если сглаживание включено — добавляем полутоновые пиксели по краям
+  if (CONFIG.ANTI_ALIASING) {
+    const edgePixels = new Set();
+
+    for (const p of pixels) {
+      // Проверяем соседей: если рядом нет пикселей символа — это край
+      const neighbors = [
+        { dx: -1, dy: 0 },
+        { dx: 1, dy: 0 },
+        { dx: 0, dy: -1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: -1 },
+        { dx: 1, dy: -1 },
+        { dx: -1, dy: 1 },
+        { dx: 1, dy: 1 }
+      ];
+
+      for (const n of neighbors) {
+        const nx = p.x + n.dx;
+        const ny = p.y + n.dy;
+
+        if (nx < 0 || nx >= CONFIG.WIDTH || ny < 0 || ny >= CONFIG.HEIGHT) continue;
+
+        // Если соседний пиксель НЕ принадлежит символу — значит, это край
+        let isNeighborInSymbol = false;
+        for (const other of pixels) {
+          if (other.x === nx && other.y === ny) {
+            isNeighborInSymbol = true;
+            break;
+          }
+        }
+
+        if (!isNeighborInSymbol) {
+          edgePixels.add(`${nx},${ny}`);
+        }
+      }
+    }
+
+    // Рисуем полутоновые пиксели по краю
+    for (const key of edgePixels) {
+      const [x, y] = key.split(',').map(Number);
+      const idx = (y * CONFIG.WIDTH + x) * 4;
+      // Полутон: #333333 → RGB(51,51,51)
+      buffer[idx] = 51;
+      buffer[idx + 1] = 51;
+      buffer[idx + 2] = 51;
+      buffer[idx + 3] = 255;
+    }
+  }
 }
 
 /**
- * Автоматически разбивает текст на строки, чтобы уложиться в maxWidth
+ * Автоматически разбивает текст на строки
  */
 function wrapText(text, charWidth, maxWidth) {
   const words = text.split(' ');
@@ -83,7 +143,7 @@ function wrapText(text, charWidth, maxWidth) {
 }
 
 /**
- * Рисует многострочный текст с переносом
+ * Рисует многострочный текст
  */
 function drawWrappedText(buffer, text, startX, startY, maxWidth) {
   const charPixelWidth = Math.ceil(8 * CONFIG.FONT_SCALE);
@@ -96,7 +156,7 @@ function drawWrappedText(buffer, text, startX, startY, maxWidth) {
     for (const char of line) {
       const glyph = FONT_8x8[char] || FONT_8x8['?'] || Array(8).fill(0);
       drawChar(buffer, glyph, currentX, startY + i * CONFIG.LINE_SPACING);
-      currentX += charPixelWidth + Math.ceil(CONFIG.FONT_SCALE); // межсимвольный интервал
+      currentX += charPixelWidth + Math.ceil(CONFIG.FONT_SCALE);
     }
   }
 }
@@ -136,7 +196,7 @@ module.exports = async (req, res) => {
     const contentHeight = CONFIG.HEIGHT - headerHeight;
     const halfWidth = Math.floor(CONFIG.WIDTH * CONFIG.LOGO_WIDTH_RATIO);
 
-    // === Заголовок (многострочный) ===
+    // === Заголовок ===
     fillRect(buffer, 0, 0, CONFIG.WIDTH, headerHeight, 245, 245, 245);
     drawWrappedText(
       buffer,
@@ -146,12 +206,12 @@ module.exports = async (req, res) => {
       CONFIG.WIDTH - 2 * CONFIG.TEXT_LEFT_PADDING
     );
 
-    // === Логотип слева (тоже может переноситься) ===
+    // === Логотип слева ===
     const logoStartX = CONFIG.TEXT_LEFT_PADDING;
     const logoStartY = contentY + 8;
     drawWrappedText(buffer, logoText, logoStartX, logoStartY, halfWidth - 2 * CONFIG.TEXT_LEFT_PADDING);
 
-    // === QR-код справа (увеличен на 10%) ===
+    // === QR-код справа ===
     const baseQrSize = Math.min(contentHeight - 20, halfWidth - 2 * CONFIG.QR_MARGIN);
     const qrSize = Math.floor(baseQrSize * 1.1);
     const qrX = CONFIG.WIDTH - qrSize - CONFIG.QR_MARGIN;
