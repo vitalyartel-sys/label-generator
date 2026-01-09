@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "type": "commonjs",
   "dependencies": {
-    "canvas": "^2.11.2",
-    "qrcode": "^1.5.3"
+    "qrcode": "^1.5.3",
+    "pngjs": "^7.0.0",
+    "pureimage": "^0.3.16",
+    "@napi-rs/canvas": "^0.1.56"
   },
   "engines": {
     "node": ">=18"
