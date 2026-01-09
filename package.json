@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "type": "commonjs",
   "dependencies": {
-    "pngjs": "^7.0.0"
+    "canvas": "^2.11.2",
+    "qrcode": "^1.5.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
