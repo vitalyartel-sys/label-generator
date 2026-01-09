@@ -4,9 +4,7 @@
   "type": "commonjs",
   "dependencies": {
     "qrcode": "^1.5.3",
-    "pngjs": "^7.0.0",
-    "pureimage": "^0.3.16",
-    "@napi-rs/canvas": "^0.1.56"
+    "pngjs": "^7.0.0"
   },
   "engines": {
     "node": ">=18"
