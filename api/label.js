@@ -1,283 +1,168 @@
-const { PNG } = require('pngjs');
-
+// ==================== НАСТРОЙКИ ====================
 const CONFIG = {
   WIDTH: 384,
   HEIGHT: 260,
-  TEXT_OFFSET_X: 50,  // отступ слева для текста
-  TEXT_OFFSET_Y: 30   // отступ сверху для текста
+  TEXT_X: 50,      // Отступ текста слева
+  TEXT_Y: 30,      // Отступ текста сверху
+  FONT_SIZE: 24,   // Размер шрифта
+  QR_SIZE: 150,    // Размер QR-кода
+  QR_MARGIN: 40    // Отступ QR от края
 };
-
-// ==================== ВАШ ШРИФТ ====================
-const fontData = {
-
-  // Русские буквы (8x8)
-  'А': [0x18,0x24,0x42,0x42,0x7E,0x42,0x42,0x00],
-  'Б': [0x7E,0x40,0x40,0x7C,0x42,0x42,0x7C,0x00],
-  'В': [0x7C,0x42,0x42,0x7C,0x42,0x42,0x7C,0x00],
-  'Г': [0x7E,0x40,0x40,0x40,0x40,0x40,0x40,0x00],
-  'Д': [0x3C,0x22,0x22,0x22,0x22,0x22,0x7F,0x41],
-  'Е': [0x7E,0x40,0x40,0x7C,0x40,0x40,0x7E,0x00],
-  'Ж': [0x42,0x42,0x24,0x18,0x24,0x42,0x42,0x00],
-  'З': [0x3C,0x42,0x02,0x1C,0x02,0x42,0x3C,0x00],
-  'И': [0x42,0x46,0x4A,0x52,0x62,0x42,0x42,0x00],
-  'Й': [0x42,0x46,0x4A,0x52,0x62,0x42,0x42,0x24],
-  'К': [0x42,0x44,0x48,0x70,0x48,0x44,0x42,0x00],
-  'Л': [0x3E,0x42,0x42,0x42,0x42,0x42,0x42,0x00],
-  'М': [0x42,0x66,0x5A,0x42,0x42,0x42,0x42,0x00],
-  'Н': [0x42,0x42,0x42,0x7E,0x42,0x42,0x42,0x00],
-  'О': [0x3C,0x42,0x42,0x42,0x42,0x42,0x3C,0x00],
-  'П': [0x7E,0x42,0x42,0x42,0x42,0x42,0x42,0x00],
-  'Р': [0x7C,0x42,0x42,0x7C,0x40,0x40,0x40,0x00],
-  'С': [0x3C,0x42,0x40,0x40,0x40,0x42,0x3C,0x00],
-  'Т': [0x7E,0x18,0x18,0x18,0x18,0x18,0x18,0x00],
-  'У': [0x42,0x42,0x42,0x3C,0x18,0x30,0x40,0x00],
-  'Ф': [0x18,0x24,0x24,0x18,0x24,0x24,0x18,0x00],
-  'Х': [0x42,0x42,0x24,0x18,0x24,0x42,0x42,0x00],
-  'Ц': [0x42,0x42,0x42,0x42,0x42,0x42,0x7E,0x02],
-  'Ч': [0x42,0x42,0x42,0x3E,0x02,0x02,0x02,0x00],
-  'Ш': [0x42,0x42,0x42,0x42,0x42,0x42,0x7E,0x00],
-  'Щ': [0x42,0x42,0x42,0x42,0x42,0x42,0x7E,0x02],
-  'Ъ': [0x70,0x20,0x20,0x3C,0x22,0x22,0x3C,0x00],
-  'Ы': [0x42,0x42,0x42,0x7A,0x46,0x46,0x7A,0x00],
-  'Ь': [0x40,0x40,0x40,0x7C,0x42,0x42,0x7C,0x00],
-  'Э': [0x3C,0x42,0x02,0x1E,0x02,0x42,0x3C,0x00],
-  'Ю': [0x4C,0x52,0x52,0x72,0x52,0x52,0x4C,0x00],
-  'Я': [0x3E,0x42,0x42,0x3E,0x0A,0x12,0x62,0x00],
-  
-  // Цифры
-  '0': [0x3C,0x42,0x46,0x4A,0x52,0x62,0x3C,0x00],
-  '1': [0x08,0x18,0x28,0x08,0x08,0x08,0x3E,0x00],
-  '2': [0x3C,0x42,0x02,0x0C,0x30,0x40,0x7E,0x00],
-  '3': [0x3C,0x42,0x02,0x1C,0x02,0x42,0x3C,0x00],
-  '4': [0x04,0x0C,0x14,0x24,0x7E,0x04,0x04,0x00],
-  '5': [0x7E,0x40,0x7C,0x02,0x02,0x42,0x3C,0x00],
-  '6': [0x3C,0x40,0x40,0x7C,0x42,0x42,0x3C,0x00],
-  '7': [0x7E,0x02,0x04,0x08,0x10,0x10,0x10,0x00],
-  '8': [0x3C,0x42,0x42,0x3C,0x42,0x42,0x3C,0x00],
-  '9': [0x3C,0x42,0x42,0x3E,0x02,0x02,0x3C,0x00],
-  
-  // Пробел
-  ' ': [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
-};
-
-// ==================== КОНЕЦ ШРИФТА ====================
-
-// ==================== ФУНКЦИИ ====================
-
-/**
- * Рисует текст ВЕРТИКАЛЬНО (повёрнутый на 90° по часовой стрелке)
- * Текст читается сверху вниз
- */
-function drawVerticalText(buffer, text, startX, startY) {
-  const chars = text.toUpperCase().split('');
-  let currentY = startY;
-  
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const glyph = fontData[char] || fontData["?"] || {w: 8, d: [0x3C00, 0x4200, 0x8100, 0x8100, 0x8100, 0x8100, 0x4200, 0x3C00]};
-    
-    // Каждый символ имеет разную ширину (пропорциональный шрифт)
-    const width = glyph.w;
-    const height = glyph.d.length; // высота = количество элементов в массиве
-    
-    // Рисуем каждый столбец глифа
-    for (let col = 0; col < width; col++) {
-      const colData = glyph.d[col] || 0;
-      
-      // Проверяем каждый бит в столбце (16-битные данные)
-      for (let bit = 0; bit < 16; bit++) {
-        if (colData & (1 << bit)) {
-          // ПОВОРОТ НА 90° ПО ЧАСОВОЙ СТРЕЛКЕ:
-          // bit -> X координата (вертикаль вниз)
-          // col -> Y координата (горизонталь вправо)
-          const x = startX + bit;
-          const y = currentY + col;
-          
-          if (x >= 0 && x < CONFIG.HEIGHT && y >= 0 && y < CONFIG.WIDTH) {
-            const idx = (x * CONFIG.WIDTH + y) * 4;
-            buffer[idx] = 0;     // R - чёрный
-            buffer[idx + 1] = 0; // G
-            buffer[idx + 2] = 0; // B
-          }
-        }
-      }
-    }
-    
-    // Переходим к следующей букве с небольшим отступом
-    currentY += width + 1; // +1 пиксель пробел между буквами
-  }
-}
-
-/**
- * Рисует текст ГОРИЗОНТАЛЬНО (для отладки и сравнения)
- */
-function drawHorizontalText(buffer, text, startX, startY) {
-  const chars = text.toUpperCase().split('');
-  let currentX = startX;
-  
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const glyph = fontData[char] || fontData["?"] || {w: 8, d: [0x3C00, 0x4200, 0x8100, 0x8100, 0x8100, 0x8100, 0x4200, 0x3C00]};
-    
-    const width = glyph.w;
-    const height = glyph.d.length;
-    
-    for (let col = 0; col < width; col++) {
-      const colData = glyph.d[col] || 0;
-      
-      for (let bit = 0; bit < 16; bit++) {
-        if (colData & (1 << bit)) {
-          const x = currentX + col;
-          const y = startY + bit;
-          
-          if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
-            const idx = (y * CONFIG.WIDTH + x) * 4;
-            buffer[idx] = 0;
-            buffer[idx + 1] = 0;
-            buffer[idx + 2] = 0;
-          }
-        }
-      }
-    }
-    
-    currentX += width + 1;
-  }
-}
-
-/**
- * Создаёт белый холст
- */
-function createWhiteCanvas() {
-  const buffer = new Uint8Array(CONFIG.WIDTH * CONFIG.HEIGHT * 4);
-  for (let i = 0; i < buffer.length; i += 4) {
-    buffer[i] = 255;     // R
-    buffer[i + 1] = 255; // G
-    buffer[i + 2] = 255; // B
-    buffer[i + 3] = 255; // A
-  }
-  return buffer;
-}
 
 // ==================== ОСНОВНОЙ КОД ====================
 
-module.exports = async (req, res) => {
+// Импортируем библиотеки
+const { createCanvas, registerFont } = require('canvas');
+const QRCode = require('qrcode');
+
+// Главная функция
+async function generateLabel(text, qrUrl) {
+  console.log('🔧 Создаём canvas...');
+  
+  // 1. СОЗДАЁМ ХОЛСТ
+  const canvas = createCanvas(CONFIG.WIDTH, CONFIG.HEIGHT);
+  const ctx = canvas.getContext('2d');
+  
+  // 2. БЕЛЫЙ ФОН
+  console.log('🎨 Заливаем фон...');
+  ctx.fillStyle = '#FFFFFF'; // белый
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+  
+  // 3. КРАСНАЯ РАМКА (для отладки)
+  console.log('🟥 Рисуем рамку...');
+  ctx.strokeStyle = '#FF0000'; // красный
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, CONFIG.WIDTH - 2, CONFIG.HEIGHT - 2);
+  
+  // 4. НАСТРАИВАЕМ ШРИФТ
+  console.log('🔤 Настраиваем шрифт...');
+  ctx.font = `bold ${CONFIG.FONT_SIZE}px Arial`;
+  ctx.fillStyle = '#000000'; // чёрный
+  ctx.textBaseline = 'top';
+  
+  // 5. ТЕКСТ СЛЕВА (ВЕРТИКАЛЬНЫЙ)
+  console.log('📝 Рисуем текст...');
+  const chars = text.toUpperCase().split('');
+  
+  // Каждую букву рисуем отдельно под предыдущей
+  for (let i = 0; i < chars.length; i++) {
+    // Сохраняем текущее состояние canvas
+    ctx.save();
+    
+    // Перемещаем в позицию для этой буквы
+    ctx.translate(CONFIG.TEXT_X, CONFIG.TEXT_Y + (i * (CONFIG.FONT_SIZE + 5)));
+    
+    // Поворачиваем на 90° (Math.PI/2 радиан = 90°)
+    ctx.rotate(Math.PI / 2);
+    
+    // Рисуем букву
+    ctx.fillText(chars[i], 0, 0);
+    
+    // Восстанавливаем состояние
+    ctx.restore();
+  }
+  
+  // 6. ГЕНЕРИРУЕМ QR-КОД
+  console.log('🔳 Генерируем QR...');
   try {
-    console.log('=== ГЕНЕРАЦИЯ ЭТИКЕТКИ ===');
-    
-    // Получаем параметры
-    const text = req.query.text || 'ПРИВЕТ';
-    console.log('Текст:', text);
-    
-    // 1. Создаём белый холст
-    const buffer = createWhiteCanvas();
-    
-    // 2. КРАСНАЯ РАМКА (для ориентации)
-    for (let x = 0; x < CONFIG.WIDTH; x++) {
-      let idx = (0 * CONFIG.WIDTH + x) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-      idx = ((CONFIG.HEIGHT-1) * CONFIG.WIDTH + x) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-    }
-    for (let y = 0; y < CONFIG.HEIGHT; y++) {
-      let idx = (y * CONFIG.WIDTH + 0) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-      idx = (y * CONFIG.WIDTH + (CONFIG.WIDTH-1)) * 4;
-      buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
-    }
-    
-    // 3. ВЕРТИКАЛЬНЫЙ ТЕКСТ СЛЕВА (основной)
-    console.log('Рисуем вертикальный текст...');
-    drawVerticalText(buffer, text, CONFIG.TEXT_OFFSET_X, CONFIG.TEXT_OFFSET_Y);
-    
-    // 4. ГОРИЗОНТАЛЬНЫЙ ТЕКСТ ВНИЗУ (для сравнения)
-    console.log('Рисуем горизонтальный текст для сравнения...');
-    drawHorizontalText(buffer, text, 50, 200);
-    
-    // 5. ОТЛАДОЧНЫЕ МЕТКИ
-    // Синяя точка в начале текста
-    const startIdx = (CONFIG.TEXT_OFFSET_X * CONFIG.WIDTH + CONFIG.TEXT_OFFSET_Y) * 4;
-    buffer[startIdx] = 0; buffer[startIdx+1] = 0; buffer[startIdx+2] = 255;
-    
-    // Зелёная точка через 50px от начала
-    const midIdx = (CONFIG.TEXT_OFFSET_X * CONFIG.WIDTH + (CONFIG.TEXT_OFFSET_Y + 50)) * 4;
-    buffer[midIdx] = 0; buffer[midIdx+1] = 255; buffer[midIdx+2] = 0;
-    
-    // 6. QR-ЗАГЛУШКА СПРАВА
-    const qrSize = 150;
-    const qrX = CONFIG.WIDTH - qrSize - 40;
-    const qrY = Math.floor((CONFIG.HEIGHT - qrSize) / 2);
-    
-    // Внешний чёрный квадрат
-    for (let y = qrY; y < qrY + qrSize; y++) {
-      for (let x = qrX; x < qrX + qrSize; x++) {
-        const idx = (y * CONFIG.WIDTH + x) * 4;
-        buffer[idx] = 0;
-        buffer[idx+1] = 0;
-        buffer[idx+2] = 0;
+    const qrBuffer = await QRCode.toBuffer(qrUrl, {
+      width: CONFIG.QR_SIZE,
+      margin: 1,
+      color: {
+        dark: '#000000',  // чёрные модули
+        light: '#FFFFFF'  // белый фон
       }
-    }
-    
-    // Внутренняя белая рамка
-    for (let y = qrY + 10; y < qrY + qrSize - 10; y++) {
-      for (let x = qrX + 10; x < qrX + qrSize - 10; x++) {
-        const idx = (y * CONFIG.WIDTH + x) * 4;
-        buffer[idx] = 255;
-        buffer[idx+1] = 255;
-        buffer[idx+2] = 255;
-      }
-    }
-    
-    // Буква "Q" в центре QR
-    for (let y = qrY + 60; y < qrY + 90; y++) {
-      for (let x = qrX + 60; x < qrX + 90; x++) {
-        const idx = (y * CONFIG.WIDTH + x) * 4;
-        buffer[idx] = 0;
-        buffer[idx+1] = 0;
-        buffer[idx+2] = 0;
-      }
-    }
-    
-    // Белый круг внутри Q
-    for (let y = qrY + 65; y < qrY + 85; y++) {
-      for (let x = qrX + 65; x < qrX + 85; x++) {
-        const idx = (y * CONFIG.WIDTH + x) * 4;
-        buffer[idx] = 255;
-        buffer[idx+1] = 255;
-        buffer[idx+2] = 255;
-      }
-    }
-    
-    // 7. ПОДПИСЬ В ПРАВОМ НИЖНЕМ УГЛУ
-    drawHorizontalText(buffer, "384x260", CONFIG.WIDTH - 100, CONFIG.HEIGHT - 20);
-    
-    // 8. СОЗДАЁМ PNG
-    const png = new PNG({
-      width: CONFIG.WIDTH,
-      height: CONFIG.HEIGHT
     });
-    png.data = Buffer.from(buffer);
     
-    // 9. ОТПРАВЛЯЕМ
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'no-cache');
+    // Создаём изображение из буфера QR
+    const qrImage = new canvas.Image();
+    qrImage.src = qrBuffer;
     
-    console.log('=== ЭТИКЕТКА ГОТОВА ===');
-    res.end(PNG.sync.write(png));
+    // Позиция QR: справа, по центру вертикали
+    const qrX = CONFIG.WIDTH - CONFIG.QR_SIZE - CONFIG.QR_MARGIN;
+    const qrY = Math.floor((CONFIG.HEIGHT - CONFIG.QR_SIZE) / 2);
+    
+    // Рисуем QR на canvas
+    ctx.drawImage(qrImage, qrX, qrY, CONFIG.QR_SIZE, CONFIG.QR_SIZE);
+    
+    console.log('✅ QR нарисован');
     
   } catch (error) {
-    console.error('=== ОШИБКА ===', error);
+    console.error('❌ Ошибка QR:', error.message);
     
-    // Создаём простую ошибку как изображение
-    const errorPng = new PNG({ width: 384, height: 260 });
-    for (let i = 0; i < errorPng.data.length; i += 4) {
-      errorPng.data[i] = 255;
-      errorPng.data[i+1] = 200;
-      errorPng.data[i+2] = 200;
-      errorPng.data[i+3] = 255;
-    }
+    // Если QR не получился, рисуем чёрный квадрат
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(
+      CONFIG.WIDTH - CONFIG.QR_SIZE - CONFIG.QR_MARGIN,
+      Math.floor((CONFIG.HEIGHT - CONFIG.QR_SIZE) / 2),
+      CONFIG.QR_SIZE,
+      CONFIG.QR_SIZE
+    );
     
+    // И букву Q внутри
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      'Q',
+      CONFIG.WIDTH - CONFIG.QR_SIZE - CONFIG.QR_MARGIN + CONFIG.QR_SIZE / 2,
+      CONFIG.HEIGHT / 2
+    );
+  }
+  
+  // 7. ПОДПИСЬ ВНИЗУ (для отладки)
+  ctx.font = '12px Arial';
+  ctx.fillStyle = '#888888'; // серый
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(
+    `${CONFIG.WIDTH}x${CONFIG.HEIGHT} | ${text}`,
+    CONFIG.WIDTH - 10,
+    CONFIG.HEIGHT - 10
+  );
+  
+  // 8. ВОЗВРАЩАЕМ PNG
+  console.log('📤 Конвертируем в PNG...');
+  return canvas.toBuffer('image/png');
+}
+
+// ==================== ОБРАБОТЧИК API ====================
+
+module.exports = async (req, res) => {
+  console.log('🚀 === ЗАПУСК ГЕНЕРАЦИИ ЭТИКЕТКИ ===');
+  
+  try {
+    // Получаем параметры из URL
+    const text = req.query.text || 'ТЕСТ';
+    const qr = req.query.qr || 'https://ya.ru';
+    
+    console.log('📋 Параметры:', { text, qr });
+    
+    // Генерируем изображение
+    const imageBuffer = await generateLabel(text, qr);
+    
+    // Настраиваем заголовки ответа
     res.setHeader('Content-Type', 'image/png');
-    res.end(PNG.sync.write(errorPng));
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('X-Label-Generator', 'Canvas v1.0');
+    
+    console.log('✅ === ЭТИКЕТКА ГОТОВА ===\n');
+    
+    // Отправляем изображение
+    res.end(imageBuffer);
+    
+  } catch (error) {
+    console.error('💥 === КРИТИЧЕСКАЯ ОШИБКА ===', error);
+    
+    // Отправляем ошибку как JSON
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Ошибка генерации этикетки',
+      timestamp: new Date().toISOString()
+    });
   }
 };
-
