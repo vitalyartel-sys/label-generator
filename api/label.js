@@ -1,91 +1,49 @@
 const { PNG } = require('pngjs');
 
 const CONFIG = {
-  WIDTH: 384,
-  HEIGHT: 260,
-  QR_SIZE: 180,
-  TEXT_OFFSET_X: 20,  // отступ сверху
-  TEXT_OFFSET_Y: 30   // отступ слева
+  WIDTH: 384,     // Ширина
+  HEIGHT: 260,    // Высота
+  TEXT_OFFSET_X: 30,  // Отступ слева для текста
+  TEXT_OFFSET_Y: 50   // Отступ сверху для текста
 };
 
-// Шрифт 8x8 (полный)
+// Шрифт 8x8 (основные буквы)
 const FONT_8x8 = {
-  // Русские буквы
-  'А': [0x18,0x24,0x42,0x42,0x7E,0x42,0x42,0x00],
-  'Б': [0xFE,0x80,0x80,0xFC,0x82,0x82,0xFC,0x00],
-  'В': [0xFF,0x81,0x81,0xFF,0x81,0x81,0xFF,0x00],
-  'Г': [0xFF,0x80,0x80,0x80,0x80,0x80,0x80,0x00],
-  'Д': [0x0C,0x12,0x22,0x22,0x22,0x22,0x7F,0x41],
-  'Е': [0xFF,0xC0,0xC0,0xFC,0xC0,0xC0,0xFF,0x00],
-  'Ё': [0x66,0x00,0xFF,0xC0,0xFC,0xC0,0xFF,0x00],
-  'Ж': [0x91,0x91,0x91,0x7C,0x54,0x92,0x92,0x00],
-  'З': [0x7C,0x82,0x02,0x1C,0x02,0x82,0x7C,0x00],
-  'И': [0x81,0x83,0x85,0x89,0x91,0xA1,0xC1,0x00],
-  'Й': [0x24,0x18,0x81,0x83,0x85,0x89,0xC1,0x00],
-  'К': [0x81,0x82,0x84,0xF8,0x84,0x82,0x81,0x00],
-  'Л': [0x0F,0x10,0x10,0x10,0x10,0x10,0x1F,0x10],
-  'М': [0x81,0xC3,0xA5,0x99,0x81,0x81,0x81,0x00],
-  'Н': [0x81,0x81,0x81,0xFF,0x81,0x81,0x81,0x00],
-  'О': [0x3C,0x42,0x81,0x81,0x81,0x42,0x3C,0x00],
   'П': [0xFF,0x81,0x81,0x81,0x81,0x81,0x81,0x00],
   'Р': [0xFF,0x81,0x81,0xFF,0x80,0x80,0x80,0x00],
-  'С': [0x3C,0x42,0x80,0x80,0x80,0x42,0x3C,0x00],
+  'И': [0x81,0x83,0x85,0x89,0x91,0xA1,0xC1,0x00],
+  'В': [0xFF,0x81,0x81,0xFF,0x81,0x81,0xFF,0x00],
+  'Е': [0xFF,0xC0,0xC0,0xFC,0xC0,0xC0,0xFF,0x00],
   'Т': [0xFF,0x18,0x18,0x18,0x18,0x18,0x18,0x00],
-  'У': [0x81,0x42,0x24,0x18,0x18,0x10,0x60,0x00],
-  'Ф': [0x18,0x24,0x24,0x18,0x24,0x24,0x18,0x00],
-  'Х': [0x81,0x42,0x24,0x18,0x24,0x42,0x81,0x00],
-  'Ц': [0x82,0x82,0x82,0x82,0x82,0x82,0x7F,0x01],
-  'Ч': [0x81,0x81,0x81,0x7F,0x01,0x01,0x01,0x00],
-  'Ш': [0x81,0x81,0x81,0x81,0x81,0x81,0xFF,0x00],
-  'Щ': [0x92,0x92,0x92,0x92,0x92,0x92,0xFF,0x01],
-  'Ъ': [0xE0,0x40,0x40,0x7C,0x42,0x42,0x7C,0x00],
-  'Ы': [0x81,0x81,0x81,0xF9,0x85,0x85,0xF9,0x00],
-  'Ь': [0x80,0x80,0x80,0xFC,0x82,0x82,0xFC,0x00],
-  'Э': [0x7C,0x82,0x01,0x1F,0x01,0x82,0x7C,0x00],
-  'Ю': [0x86,0x89,0x91,0xF1,0x91,0x89,0x86,0x00],
-  'Я': [0x3F,0x41,0x41,0x3F,0x05,0x09,0x71,0x00],
-  
-  // Цифры
-  '0': [0x3C,0x42,0x81,0x81,0x81,0x42,0x3C,0x00],
-  '1': [0x08,0x18,0x28,0x08,0x08,0x08,0x3E,0x00],
-  '2': [0x3C,0x42,0x02,0x0C,0x30,0x40,0x7E,0x00],
-  '3': [0x3C,0x42,0x02,0x1C,0x02,0x42,0x3C,0x00],
-  '4': [0x04,0x0C,0x14,0x24,0x7E,0x04,0x04,0x00],
-  '5': [0x7E,0x40,0x7C,0x02,0x02,0x42,0x3C,0x00],
-  '6': [0x1C,0x20,0x40,0x7C,0x42,0x42,0x3C,0x00],
-  '7': [0x7E,0x02,0x04,0x08,0x10,0x20,0x40,0x00],
-  '8': [0x3C,0x42,0x42,0x3C,0x42,0x42,0x3C,0x00],
-  '9': [0x3C,0x42,0x42,0x3E,0x02,0x04,0x38,0x00],
-  
-  // Специальные символы
-  '?': [0x3C,0x42,0x02,0x0C,0x10,0x00,0x10,0x00],
-  '!': [0x18,0x18,0x18,0x18,0x00,0x00,0x18,0x00],
-  '.': [0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x00],
-  ',': [0x00,0x00,0x00,0x00,0x18,0x18,0x30,0x00],
-  '-': [0x00,0x00,0x00,0x7E,0x00,0x00,0x00,0x00],
   ' ': [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
 };
 
-// Текст СЛЕВА вертикально (без поворота)
+/**
+ * Рисуем текст СЛЕВА ВЕРТИКАЛЬНО (читается сверху вниз)
+ * Без сложного поворота - просто рисуем буквы одна под другой
+ */
 function drawVerticalText(buffer, text, startX, startY) {
   const chars = text.toUpperCase().split('');
   
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
+  for (let letterIndex = 0; letterIndex < chars.length; letterIndex++) {
+    const char = chars[letterIndex];
     const glyph = FONT_8x8[char] || FONT_8x8['?'];
     
-    // Рисуем букву 8x8
-    for (let col = 0; col < 8; col++) {
-      const colData = glyph[col];
+    // Каждая буква - 8x8 пикселей
+    for (let row = 0; row < 8; row++) {          // строка в букве (0-7)
+      const rowData = glyph[row];
       
-      for (let row = 0; row < 8; row++) {
-        if (colData & (1 << (7 - row))) {
-          const x = startX + col;           // горизонталь
-          const y = startY + (i * 10) + row; // вертикаль (10 = 8+2 пробел)
+      for (let col = 0; col < 8; col++) {        // колонка в букве (0-7)
+        // Проверяем бит (справа налево: 7-col)
+        if (rowData & (1 << (7 - col))) {
+          // X - горизонтальная координата (отступ слева + колонка)
+          // Y - вертикальная координата (отступ сверху + номер буквы*10 + строка)
+          const x = startX + col;
+          const y = startY + (letterIndex * 10) + row;
           
           if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
             const idx = (y * CONFIG.WIDTH + x) * 4;
-            buffer[idx] = 0;     // R
+            buffer[idx] = 0;     // R - чёрный
             buffer[idx + 1] = 0; // G
             buffer[idx + 2] = 0; // B
           }
@@ -98,8 +56,9 @@ function drawVerticalText(buffer, text, startX, startY) {
 module.exports = async (req, res) => {
   try {
     const text = req.query.text || 'ПРИВЕТ';
-    console.log('Генерация:', text);
+    console.log('Генерация этикетки:', text);
     
+    // Создаём буфер для изображения
     const buffer = new Uint8Array(CONFIG.WIDTH * CONFIG.HEIGHT * 4);
     
     // 1. БЕЛЫЙ ФОН
@@ -110,32 +69,88 @@ module.exports = async (req, res) => {
       buffer[i+3] = 255;
     }
     
-    // 2. ТЕКСТ СЛЕВА
-    drawVerticalText(buffer, text, CONFIG.TEXT_OFFSET_Y, CONFIG.TEXT_OFFSET_X);
-    
-    // 3. КРАСНАЯ РАМКА
+    // 2. КРАСНАЯ РАМКА (для ориентации)
+    // Верхняя граница
     for (let x = 0; x < CONFIG.WIDTH; x++) {
       let idx = (0 * CONFIG.WIDTH + x) * 4;
       buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
+      // Нижняя граница
       idx = ((CONFIG.HEIGHT-1) * CONFIG.WIDTH + x) * 4;
       buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
     }
+    // Левая граница
     for (let y = 0; y < CONFIG.HEIGHT; y++) {
       let idx = (y * CONFIG.WIDTH + 0) * 4;
       buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
+      // Правая граница
       idx = (y * CONFIG.WIDTH + (CONFIG.WIDTH-1)) * 4;
       buffer[idx] = 255; buffer[idx+1] = 0; buffer[idx+2] = 0;
     }
     
-    // 4. Создаём PNG
-    const png = new PNG({ width: CONFIG.WIDTH, height: CONFIG.HEIGHT });
+    // 3. ТЕКСТ СЛЕВА (вертикальный, читается сверху вниз)
+    console.log('Рисуем текст по координатам:', CONFIG.TEXT_OFFSET_X, CONFIG.TEXT_OFFSET_Y);
+    drawVerticalText(buffer, text, CONFIG.TEXT_OFFSET_X, CONFIG.TEXT_OFFSET_Y);
+    
+    // 4. ОТЛАДОЧНЫЕ МЕТКИ
+    // Синяя точка в начале текста
+    const startIdx = (CONFIG.TEXT_OFFSET_Y * CONFIG.WIDTH + CONFIG.TEXT_OFFSET_X) * 4;
+    buffer[startIdx] = 0; buffer[startIdx+1] = 0; buffer[startIdx+2] = 255;
+    
+    // Зелёная точка через 50px от начала текста
+    const midIdx = ((CONFIG.TEXT_OFFSET_Y + 50) * CONFIG.WIDTH + CONFIG.TEXT_OFFSET_X) * 4;
+    buffer[midIdx] = 0; buffer[midIdx+1] = 255; buffer[midIdx+2] = 0;
+    
+    // 5. ЧЁРНЫЙ КВАДРАТ СПРАВА (заглушка для QR)
+    const qrSize = 150;
+    const qrX = CONFIG.WIDTH - qrSize - 40;
+    const qrY = Math.floor((CONFIG.HEIGHT - qrSize) / 2);
+    
+    for (let y = qrY; y < qrY + qrSize; y++) {
+      for (let x = qrX; x < qrX + qrSize; x++) {
+        const idx = (y * CONFIG.WIDTH + x) * 4;
+        buffer[idx] = 0;
+        buffer[idx+1] = 0;
+        buffer[idx+2] = 0;
+      }
+    }
+    
+    // 6. БЕЛАЯ РАМКА ВНУТРИ QR (чтобы видеть квадрат)
+    for (let y = qrY + 10; y < qrY + qrSize - 10; y++) {
+      for (let x = qrX + 10; x < qrX + qrSize - 10; x++) {
+        const idx = (y * CONFIG.WIDTH + x) * 4;
+        buffer[idx] = 255;
+        buffer[idx+1] = 255;
+        buffer[idx+2] = 255;
+      }
+    }
+    
+    // 7. БУКВА "Q" в центре QR
+    for (let y = qrY + 60; y < qrY + 90; y++) {
+      for (let x = qrX + 60; x < qrX + 90; x++) {
+        const idx = (y * CONFIG.WIDTH + x) * 4;
+        buffer[idx] = 0;
+        buffer[idx+1] = 0;
+        buffer[idx+2] = 0;
+      }
+    }
+    
+    // 8. СОЗДАЁМ PNG
+    const png = new PNG({
+      width: CONFIG.WIDTH,
+      height: CONFIG.HEIGHT
+    });
     png.data = Buffer.from(buffer);
     
+    // 9. ОТПРАВЛЯЕМ
     res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-cache');
     res.end(PNG.sync.write(png));
     
   } catch (error) {
     console.error('Ошибка:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      message: 'Ошибка генерации изображения'
+    });
   }
 };
