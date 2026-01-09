@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "type": "commonjs",
   "dependencies": {
-    "qrcode": "^1.5.3",
     "pngjs": "^7.0.0"
   }
 }
