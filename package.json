@@ -1,9 +1,10 @@
 {
+ "type": "module",
   "name": "label-generator",
   "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
+   "dependencies": {
     "qrcode": "^1.5.3",
     "pngjs": "^7.0.0"
   }
 }
+
