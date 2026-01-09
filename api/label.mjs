@@ -1,20 +1,13 @@
-import QRCode from 'qrcode';
 import { PNG } from 'pngjs';
 
-// Оптимизированная конфигурация
+// ==================== КОНФИГУРАЦИЯ ====================
 const CONFIG = {
-  WIDTH: 384,
-  HEIGHT: 260,
-  QR_SIZE: 180,
-  TEXT_OFFSET_X: 20,
-  TEXT_OFFSET_Y: 30,
-  QR_OFFSET_RIGHT: 40,
-  FONT_CHAR_WIDTH: 8,
-  FONT_CHAR_HEIGHT: 8,
-  LETTER_SPACING: 1  // +1px между буквами
+  WIDTH: 384,     // Ширина изображения
+  HEIGHT: 260,    // Высота изображения
+  FONT_SIZE: 8    // Размер шрифта 8x8
 };
 
-// Шрифт 8x8 (оптимизированный только нужные символы)
+// ==================== ШРИФТ 8x8 ====================
 const FONT_8x8 = {
   // Русские буквы
   'А': [0x18,0x24,0x42,0x42,0x7E,0x42,0x42,0x00],
@@ -72,28 +65,41 @@ const FONT_8x8 = {
   ' ': [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
 };
 
-function drawRotatedText90(buffer, text, offsetX, offsetY) {
-  const chars = String(text).toUpperCase().split('');
+// ==================== ФУНКЦИЯ РИСОВАНИЯ ТЕКСТА ====================
+function drawText(buffer, text, startX, startY) {
+  const chars = text.toUpperCase().split('');
+  console.log(`Рисуем текст: "${text}" (${chars.length} символов)`);
+  console.log(`Позиция: x=${startX}, y=${startY}`);
   
   for (let letterIndex = 0; letterIndex < chars.length; letterIndex++) {
     const char = chars[letterIndex];
     const glyph = FONT_8x8[char] || FONT_8x8['?'];
-    const letterY = offsetY + letterIndex * (CONFIG.FONT_CHAR_WIDTH + CONFIG.LETTER_SPACING);
     
-    for (let col = 0; col < CONFIG.FONT_CHAR_WIDTH; col++) {
-      const colData = glyph[col];
+    console.log(`Символ ${letterIndex}: "${char}"`);
+    
+    // Рисуем символ 8x8
+    for (let row = 0; row < 8; row++) {
+      const rowData = glyph[row];
       
-      for (let row = 0; row < CONFIG.FONT_CHAR_HEIGHT; row++) {
-        if (colData & (1 << (7 - row))) {
-          const x = offsetX + row;
-          const y = letterY + col;
+      for (let col = 0; col < 8; col++) {
+        // Проверяем бит в строке
+        if (rowData & (1 << (7 - col))) {
+          // Координаты пикселя
+          const x = startX + (letterIndex * 9) + col; // 9 = 8 + 1 пробел
+          const y = startY + row;
           
-          if (x >= 0 && x < CONFIG.HEIGHT && y >= 0 && y < CONFIG.WIDTH) {
-            const idx = (x * CONFIG.WIDTH + y) * 4;
+          // Проверяем границы
+          if (x >= 0 && x < CONFIG.WIDTH && y >= 0 && y < CONFIG.HEIGHT) {
+            // Индекс в буфере
+            const idx = (y * CONFIG.WIDTH + x) * 4;
+            
+            // Чёрный пиксель
             buffer[idx] = 0;     // R
             buffer[idx + 1] = 0; // G
             buffer[idx + 2] = 0; // B
-            // A уже установлена в 255
+            // A уже 255
+          } else {
+            console.warn(`Пиксель вне границ: x=${x}, y=${y}`);
           }
         }
       }
@@ -101,77 +107,118 @@ function drawRotatedText90(buffer, text, offsetX, offsetY) {
   }
 }
 
-function createWhiteCanvas() {
+// ==================== СОЗДАНИЕ ХОЛСТА ====================
+function createCanvas() {
   const buffer = new Uint8Array(CONFIG.WIDTH * CONFIG.HEIGHT * 4);
+  console.log(`Создаём холст: ${CONFIG.WIDTH}x${CONFIG.HEIGHT}, буфер: ${buffer.length} байт`);
+  
+  // Белый фон
   for (let i = 0; i < buffer.length; i += 4) {
-    buffer[i] = 255;   // R
-    buffer[i+1] = 255; // G
-    buffer[i+2] = 255; // B
-    buffer[i+3] = 255; // A
+    buffer[i] = 255;     // R
+    buffer[i + 1] = 255; // G
+    buffer[i + 2] = 255; // B
+    buffer[i + 3] = 255; // A
   }
+  
   return buffer;
 }
 
-async function generateQRCode(url) {
-  try {
-    return await QRCode.toBuffer(url, {
-      width: CONFIG.QR_SIZE,
-      margin: 1,
-      color: { dark: '#000000', light: '#FFFFFF' }
-    });
-  } catch (error) {
-    throw new Error(`Ошибка генерации QR: ${error.message}`);
+// ==================== ДЕБАГ РАМКА ====================
+function drawDebugFrame(buffer) {
+  console.log('Рисуем отладочную рамку...');
+  
+  // Красная рамка по краям
+  for (let x = 0; x < CONFIG.WIDTH; x++) {
+    // Верхняя граница
+    let idx = (0 * CONFIG.WIDTH + x) * 4;
+    buffer[idx] = 255;     // R
+    buffer[idx + 1] = 0;   // G
+    buffer[idx + 2] = 0;   // B
+    
+    // Нижняя граница
+    idx = ((CONFIG.HEIGHT - 1) * CONFIG.WIDTH + x) * 4;
+    buffer[idx] = 255;
+    buffer[idx + 1] = 0;
+    buffer[idx + 2] = 0;
+  }
+  
+  for (let y = 0; y < CONFIG.HEIGHT; y++) {
+    // Левая граница
+    let idx = (y * CONFIG.WIDTH + 0) * 4;
+    buffer[idx] = 255;
+    buffer[idx + 1] = 0;
+    buffer[idx + 2] = 0;
+    
+    // Правая граница
+    idx = (y * CONFIG.WIDTH + (CONFIG.WIDTH - 1)) * 4;
+    buffer[idx] = 255;
+    buffer[idx + 1] = 0;
+    buffer[idx + 2] = 0;
+  }
+  
+  // Зелёный крест в центре
+  const centerX = Math.floor(CONFIG.WIDTH / 2);
+  const centerY = Math.floor(CONFIG.HEIGHT / 2);
+  console.log(`Центр изображения: x=${centerX}, y=${centerY}`);
+  
+  for (let i = -10; i <= 10; i++) {
+    // Горизонтальная линия
+    let idx = (centerY * CONFIG.WIDTH + (centerX + i)) * 4;
+    if (idx >= 0 && idx < buffer.length) {
+      buffer[idx] = 0;
+      buffer[idx + 1] = 255;
+      buffer[idx + 2] = 0;
+    }
+    
+    // Вертикальная линия
+    idx = ((centerY + i) * CONFIG.WIDTH + centerX) * 4;
+    if (idx >= 0 && idx < buffer.length) {
+      buffer[idx] = 0;
+      buffer[idx + 1] = 255;
+      buffer[idx + 2] = 0;
+    }
   }
 }
 
+// ==================== ОСНОВНОЙ ОБРАБОТЧИК ====================
 export default async function handler(req, res) {
-  // Устанавливаем таймаут ответа
-  req.setTimeout(30000);
+  console.log('=== НАЧАЛО ГЕНЕРАЦИИ ИЗОБРАЖЕНИЯ ===');
   
   try {
-    // Получаем параметры
-    const { text = 'ТЕСТ', qr = 'https://ya.ru' } = req.query;
+    // Получаем текст из параметров
+    const text = req.query.text || 'ТЕСТ';
     const decodedText = decodeURIComponent(text);
-    const decodedQR = decodeURIComponent(qr);
     
-    console.log('Генерация этикетки:', { 
-      text: decodedText.substring(0, 50), 
-      qr: decodedQR.substring(0, 100) 
+    console.log('Параметры запроса:', { 
+      text: decodedText,
+      rawQuery: req.query 
     });
     
-    // Создаём белый холст
-    const buffer = createWhiteCanvas();
+    // Создаём холст
+    const buffer = createCanvas();
     
-    // Рисуем текст слева
-    drawRotatedText90(buffer, decodedText, CONFIG.TEXT_OFFSET_X, CONFIG.TEXT_OFFSET_Y);
+    // Рисуем отладочную рамку
+    drawDebugFrame(buffer);
     
-    // Генерируем и рисуем QR-код справа
-    const qrBuffer = await generateQRCode(decodedQR);
-    const qrImage = PNG.sync.read(qrBuffer);
+    // Рисуем текст в нескольких местах для теста
+    console.log('\nРисуем текст в разных позициях:');
     
-    const qrX = Math.floor((CONFIG.HEIGHT - CONFIG.QR_SIZE) / 2);
-    const qrY = CONFIG.WIDTH - CONFIG.QR_SIZE - CONFIG.QR_OFFSET_RIGHT;
+    // 1. Текст в левом верхнем углу
+    drawText(buffer, decodedText, 30, 30);
     
-    for (let y = 0; y < CONFIG.QR_SIZE; y++) {
-      for (let x = 0; x < CONFIG.QR_SIZE; x++) {
-        const srcIdx = (y * CONFIG.QR_SIZE + x) * 4;
-        const dstX = qrX + x;
-        const dstY = qrY + y;
-        
-        if (dstX >= 0 && dstX < CONFIG.HEIGHT && dstY >= 0 && dstY < CONFIG.WIDTH) {
-          const dstIdx = (dstX * CONFIG.WIDTH + dstY) * 4;
-          
-          // Копируем только чёрные пиксели
-          if (qrImage.data[srcIdx] < 128) {
-            buffer[dstIdx] = 0;
-            buffer[dstIdx+1] = 0;
-            buffer[dstIdx+2] = 0;
-          }
-        }
-      }
-    }
+    // 2. Текст по центру
+    const centerTextX = Math.floor(CONFIG.WIDTH / 2) - (decodedText.length * 9 / 2);
+    drawText(buffer, 'ЦЕНТР', centerTextX, Math.floor(CONFIG.HEIGHT / 2) - 4);
     
-    // Создаём PNG
+    // 3. Текст в правом нижнем углу
+    const bottomTextX = CONFIG.WIDTH - (decodedText.length * 9) - 30;
+    drawText(buffer, decodedText, bottomTextX, CONFIG.HEIGHT - 40);
+    
+    // 4. Небольшой текст сверху
+    drawText(buffer, 'ВЕРХ', 150, 10);
+    
+    // Создаём PNG изображение
+    console.log('\nСоздаём PNG...');
     const png = new PNG({ 
       width: CONFIG.WIDTH, 
       height: CONFIG.HEIGHT 
@@ -179,28 +226,26 @@ export default async function handler(req, res) {
     png.data = Buffer.from(buffer);
     
     // Отправляем ответ
+    console.log('Отправляем изображение...');
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // Кэшируем на 1 час
-    res.setHeader('X-Label-Generator', 'v1.0');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
-    res.end(PNG.sync.write(png));
+    const imageBuffer = PNG.sync.write(png);
+    console.log(`Размер PNG: ${imageBuffer.length} байт`);
+    console.log('=== ЗАВЕРШЕНО УСПЕШНО ===\n');
+    
+    res.end(imageBuffer);
     
   } catch (error) {
-    console.error('Ошибка генерации:', error);
+    console.error('=== ОШИБКА ===', error);
     
-    // Создаём изображение с ошибкой
-    const errorPng = new PNG({ width: CONFIG.WIDTH, height: CONFIG.HEIGHT });
-    
-    // Заливаем красным
-    for (let i = 0; i < errorPng.data.length; i += 4) {
-      errorPng.data[i] = 255;     // R
-      errorPng.data[i+1] = 200;   // G
-      errorPng.data[i+2] = 200;   // B
-      errorPng.data[i+3] = 255;   // A
-    }
-    
-    res.status(500);
-    res.setHeader('Content-Type', 'image/png');
-    res.end(PNG.sync.write(errorPng));
+    // Простой текстовый ответ об ошибке
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack,
+      message: 'Ошибка генерации изображения'
+    });
   }
 }
